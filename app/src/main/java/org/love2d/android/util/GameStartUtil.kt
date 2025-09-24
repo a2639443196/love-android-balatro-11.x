@@ -13,7 +13,6 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.love2d.android.GameActivity
-import org.love2d.android.GameLoadingActivity
 import org.love2d.android.room.game.GameInfo
 
 object GameStartUtil {
@@ -149,7 +148,7 @@ object GameStartUtil {
     private fun startGame(context: Context, game: GameInfo) {
         Log.e("HJR-Game", "startGame $game")
         Handler(Looper.getMainLooper()).postDelayed({
-            val intent = Intent(context, GameLoadingActivity::class.java)
+            val intent = Intent(context, GameActivity::class.java)
             if (!game.filePath.isNullOrEmpty()) {
                 intent.putExtra("gamePath", game.filePath)
             }

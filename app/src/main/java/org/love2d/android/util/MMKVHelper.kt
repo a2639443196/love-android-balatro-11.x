@@ -1,7 +1,5 @@
 package org.love2d.android.util
 
-// MMKVHelper.kt
-
 import android.content.Context
 import com.tencent.mmkv.MMKV
 

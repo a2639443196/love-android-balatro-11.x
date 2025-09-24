@@ -3,7 +3,6 @@ package org.love2d.android
 import android.app.Application
 import android.util.Log
 import com.tencent.bugly.crashreport.CrashReport
-import org.love2d.android.util.FileSelectorUtil
 import org.love2d.android.util.GameDbUtil
 import org.love2d.android.util.MMKVHelper
 import org.love2d.android.util.ModDbUtil
