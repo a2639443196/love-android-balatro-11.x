@@ -46,7 +46,7 @@ import androidx.navigation.NavController
 import org.love2d.android.ui.activity.GameManagerViewModel
 import org.love2d.android.ui.activity.Screen
 import org.love2d.android.ui.compose.EmptyLottie
-import org.love2d.android.util.FileSelectorUtil
+import org.love2d.android.util.AppFileUtils
 import org.love2d.android.util.ShareUtil
 import java.io.File
 
@@ -59,7 +59,7 @@ fun EnhancedLovelyLogPage(navController: NavController, viewModel: GameManagerVi
     val context = LocalContext.current
     val gameInfo by viewModel.currentGame.collectAsState()
     val files = remember(gameInfo) {
-        gameInfo?.modPath?.let { FileSelectorUtil.getLovelyLogList(context, it) }
+        gameInfo?.modPath?.let { AppFileUtils.getLovelyLogList(it) }
     }
 
     Scaffold(

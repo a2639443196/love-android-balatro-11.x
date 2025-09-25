@@ -70,12 +70,6 @@ object Net {
     const val BASE_URL = "https://mod-api-prod.zhki.org"
 }
 
-object BuiltInMod {
-    val builtInModList = listOf(
-        "MobileLikeDragging.zip"
-    )
-}
-
 object CreatePackage {
     const val H_PACKAGE_MANIFEST_NAME = "hPackageManifest.json"
 }

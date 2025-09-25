@@ -70,7 +70,8 @@ import org.love2d.android.ui.activity.Screen
 import org.love2d.android.ui.compose.ConfirmDialog
 import org.love2d.android.ui.compose.GameNameInputDialog
 import org.love2d.android.ui.compose.GameRunningTipDialog
-import org.love2d.android.util.FileSelectorUtil
+import org.love2d.android.util.AppFileUtils
+import org.love2d.android.util.GameManager
 import org.love2d.android.util.GameStartUtil
 import org.love2d.android.util.TimeUtil
 
@@ -204,7 +205,7 @@ fun GameDetailPage(
                         onClick = {
                             gameInfo?.let {
                                 if (it.modPath.isNullOrEmpty()) {
-                                    val modsFolder = FileSelectorUtil.createGameModsFolder(
+                                    val modsFolder = GameManager.createGameModsFolder(
                                         context = context,
                                         name = gameInfo?.name.orEmpty()
                                     )

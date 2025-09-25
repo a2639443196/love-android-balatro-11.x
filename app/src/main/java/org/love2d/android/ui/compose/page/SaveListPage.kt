@@ -71,9 +71,9 @@ import org.love2d.android.ui.activity.GameManagerViewModel
 import org.love2d.android.ui.compose.EmptyLottie
 import org.love2d.android.ui.compose.ScanQrCodeDialog
 import org.love2d.android.ui.compose.TopTitleBar
-import org.love2d.android.util.FileSelectorUtil
 import org.love2d.android.util.ShareUtil
 import org.love2d.android.util.WebSocketManager
+import org.love2d.android.util.ZipManager
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -318,7 +318,7 @@ fun SaveFileRow(file: File, currentName: String, onViewClick: (File) -> Unit, on
         IconButton(
             onClick = {
                 val saveZipFile = File(context.cacheDir, "${file.nameWithoutExtension}.zip")
-                FileSelectorUtil.zipDirectory(file, saveZipFile)
+                ZipManager.zipDirectory(file, saveZipFile)
                 ShareUtil.shareFile(context, saveZipFile.absolutePath)
             },
         ) {

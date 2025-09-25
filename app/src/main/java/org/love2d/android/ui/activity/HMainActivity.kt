@@ -37,10 +37,11 @@ import org.love2d.android.ui.compose.page.SaveListPage
 import org.love2d.android.ui.compose.page.SplashPage
 import org.love2d.android.ui.resource.AppRoot
 import org.love2d.android.ui.resource.LocalUserPreferredTheme
-import org.love2d.android.util.DIR
-import org.love2d.android.util.FileSelectorUtil
+import org.love2d.android.util.FilePickerHelper
+import org.love2d.android.util.GameManager
 import org.love2d.android.util.GameStartUtil
 import org.love2d.android.util.MMKVHelper
+import org.love2d.android.util.ZipManager
 import kotlin.system.exitProcess
 
 /**
@@ -76,13 +77,13 @@ class HMainActivity : BaseComposeActivity(false) {
             viewModel.gameName.collect { name ->
                 if (name.isCreate) {
                     if (name.gameName.isNotBlank()) {
-                        FileSelectorUtil.copyLoveFileToAppDir(
-                            localContext, viewModel.fileUrl!!, DIR.GAME_FOLDER_PATH, name.gameName
+                        GameManager.installGame(
+                            localContext, viewModel.fileUrl!!, name.gameName
                         )
                     }
                 } else {
                     if (name.gameName.isNotBlank()) {
-                        FileSelectorUtil.renameFile(
+                        GameManager.renameGame(
                             localContext,
                             viewModel.currentGame.value,
                             name.gameName,
@@ -103,8 +104,8 @@ class HMainActivity : BaseComposeActivity(false) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == RESULT_OK) {
             when (requestCode) {
-                FileSelectorUtil.REQUEST_GAME_CODE_FILE -> {
-                    val handleFileResult = FileSelectorUtil.handleLoveFileResult(localActivity, data) {
+                FilePickerHelper.REQUEST_GAME_CODE_FILE -> {
+                    val handleFileResult = FilePickerHelper.handleLoveFileResult(localActivity, data) {
                         viewModel.fileUrl = it
                         viewModel.inputGameName()
                     }
@@ -115,10 +116,11 @@ class HMainActivity : BaseComposeActivity(false) {
                     }
                 }
 
-                FileSelectorUtil.REQUEST_MOD_CODE_FILE -> {
+                FilePickerHelper.REQUEST_MOD_CODE_FILE -> {
                     val modPath = viewModel.currentGame.value?.modPath
-                    FileSelectorUtil.handleZIPFileResult(localActivity, data) { modUri ->
-                        FileSelectorUtil.installZipFileToModPath(localContext, modPath = modPath.orEmpty(), zipUri = modUri)
+                    FilePickerHelper.handleZipFileResult(localActivity, data) { modUri ->
+                        // 正确的调用，使用 ZipManager 来处理 ZIP 安装
+                        ZipManager.installModFromUri(localContext, modPath = modPath.orEmpty(), zipUri = modUri)
                     }
                 }
 

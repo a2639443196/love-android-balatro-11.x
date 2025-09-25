@@ -46,13 +46,11 @@ import org.love2d.android.bean.LocalModManifestBean
 import org.love2d.android.room.game.GameInfo
 import org.love2d.android.room.mod.ModInfo
 import org.love2d.android.ui.activity.GameManagerViewModel
-import org.love2d.android.util.FileSelectorUtil
 import org.love2d.android.util.startNetUri
 
 @Composable
 fun LocalModPage(game: GameInfo, viewModel: GameManagerViewModel, installMod: (ModInfo) -> Unit) {
     val context = LocalContext.current
-    val modItems = viewModel.getBuiltInModState(game.modPath, context).collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -63,13 +61,13 @@ fun LocalModPage(game: GameInfo, viewModel: GameManagerViewModel, installMod: (M
                 bottom = 125.dp
             ), verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(modItems.value.size) { index ->
-                EnhancedLocalModItem(item = modItems.value[index], onDelete = {
-                    viewModel.deleteMod(modItems.value[index].modInfo!!)
-                }, onInstall = {
-                    FileSelectorUtil.installZipFromAssetsToModPath(context, game.modPath, modItems.value[index].fileName)
-                })
-            }
+//            items(modItems.value.size) { index ->
+//                EnhancedLocalModItem(item = modItems.value[index], onDelete = {
+//                    viewModel.deleteMod(modItems.value[index].modInfo!!)
+//                }, onInstall = {
+//                    FileSelectorUtil.installZipFromAssetsToModPath(context, game.modPath, modItems.value[index].fileName)
+//                })
+//            }
         }
     }
 }

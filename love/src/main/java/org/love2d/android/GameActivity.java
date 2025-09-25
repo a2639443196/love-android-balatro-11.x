@@ -37,6 +37,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Vibrator;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.DisplayCutout;
@@ -65,6 +66,8 @@ public class GameActivity extends SDLActivity {
     private static final String TAG = "GameActivity";
     private static DisplayMetrics metrics = null;
     private static String gamePath = "";
+    private static String modPath = "";
+    private static String savePath = "";
     private static Vibrator vibrator = null;
     protected final int[] externalStorageRequestDummy = new int[1];
     protected final int[] recordAudioRequestDummy = new int[1];
@@ -79,6 +82,7 @@ public class GameActivity extends SDLActivity {
     public int safeAreaLeft = 0;
     public int safeAreaBottom = 0;
     public int safeAreaRight = 0;
+    private String[] args;
 
     private static native void nativeSetDefaultStreamValues(int sampleRate, int framesPerBurst);
 
@@ -93,6 +97,11 @@ public class GameActivity extends SDLActivity {
                 "openal",
                 "love",
         };
+    }
+
+    @Override
+    protected String[] getArguments() {
+        return args;
     }
 
     @Override
@@ -134,10 +143,10 @@ public class GameActivity extends SDLActivity {
         storagePermissionUnnecessary = false;
         embed = getResources().getBoolean(R.bool.embed);
         needToCopyGameInArchive = embed;
-        String modPath = "";
         if (!embed) {
             Intent intent = getIntent();
             modPath = intent.getStringExtra("modPath");
+            savePath = intent.getStringExtra("savePath");
             handleIntent(intent);
             intent.setData(null);
         }
@@ -217,6 +226,17 @@ public class GameActivity extends SDLActivity {
                 } else {
                     gamePath = path;
                 }
+
+                ArrayList<String> strings = new ArrayList<>();
+                if (!TextUtils.isEmpty(modPath)) {
+                    strings.add(modPath);
+                } else strings.add("");
+
+                if (!TextUtils.isEmpty(savePath)) {
+                    strings.add(savePath);
+                } else strings.add("");
+
+                args = strings.toArray(new String[strings.size() - 1]);
             } else if (scheme.equals("content")) {
                 Log.d("GameActivity", "Received content:// intent with path: " + path);
                 try {

@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import com.tencent.bugly.crashreport.CrashReport
 import org.love2d.android.util.GameDbUtil
+import org.love2d.android.util.GameManager
 import org.love2d.android.util.MMKVHelper
 import org.love2d.android.util.ModDbUtil
 import java.io.File
@@ -39,7 +40,7 @@ class LoveApplication : Application() {
         MMKVHelper.init(appContext)
         GameDbUtil.init(appContext)
         ModDbUtil.init(appContext)
-        FileSelectorUtil.checkGameFileExists(appContext.applicationContext)
+        GameManager.syncGamesWithDatabase(appContext.applicationContext)
 
         CrashReport.initCrashReport(applicationContext, "5863f1fa73", true)
     }

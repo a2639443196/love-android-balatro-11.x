@@ -92,7 +92,7 @@ object WebSocketManager {
             }
 
             "synced" -> {
-                FileSelectorUtil.base64ToZip(LoveApplication.appContext, wsMessage.payload)
+                ZipManager.decodeBase64AndUnzip(LoveApplication.appContext, wsMessage.payload)
             }
         }
     }

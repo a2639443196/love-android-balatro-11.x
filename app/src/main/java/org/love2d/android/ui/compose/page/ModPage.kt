@@ -98,9 +98,6 @@ fun ModPage(
                                     viewModel.deleteMod(mod)
                                 }
                             }
-                            1 -> {
-                                LocalModPage(gameInfoState.value!!, viewModel) {}
-                            }
                         }
                     }
                 }

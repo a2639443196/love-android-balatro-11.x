@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -14,6 +15,7 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.love2d.android.GameActivity
 import org.love2d.android.room.game.GameInfo
+import java.io.File
 
 object GameStartUtil {
 
@@ -22,6 +24,7 @@ object GameStartUtil {
     // 关键步骤1：定义清晰、唯一的广播Action字符串
     // 用于命令游戏进程关闭
     const val ACTION_REQUEST_SHUTDOWN = "org.love2d.android.ACTION_REQUEST_SHUTDOWN"
+
     // 用于接收游戏进程已确认关闭的回信
     const val ACTION_SHUTDOWN_CONFIRMED = "org.love2d.android.ACTION_SHUTDOWN_CONFIRMED"
 
@@ -148,9 +151,9 @@ object GameStartUtil {
     private fun startGame(context: Context, game: GameInfo) {
         Log.e("HJR-Game", "startGame $game")
         Handler(Looper.getMainLooper()).postDelayed({
-            val intent = Intent(context, GameActivity::class.java)
-            if (!game.filePath.isNullOrEmpty()) {
-                intent.putExtra("gamePath", game.filePath)
+            val intent = Intent(context, GameActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                data = Uri.fromFile(File(game.filePath))
             }
             if (game.isEnableMod) {
                 Log.e("HJR-Game", "modPath ${game.modPath}")

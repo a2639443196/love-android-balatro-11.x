@@ -30,7 +30,8 @@ import com.google.accompanist.pager.HorizontalPagerIndicator
 import com.google.accompanist.pager.rememberPagerState
 import kotlinx.coroutines.launch
 import org.love2d.android.ui.compose.PermissionGate
-import org.love2d.android.util.FileSelectorUtil
+import org.love2d.android.util.AppFileUtils
+import org.love2d.android.util.GameManager
 import org.love2d.android.util.PermissionUtil
 
 data class PermissionPageBean(val btnText: String, val content: String)
@@ -110,13 +111,13 @@ fun PermissionPagerUI(onConfirm: () -> Unit) {
                             if (page == 0) {
                                 isRequestPermissionGranted = true
                             } else if (page == 1) {
-                                if (FileSelectorUtil.checkOrCreateLocalGameFolder()) {
+                                if (AppFileUtils.checkOrCreateLocalGameFolder()) {
                                     scope.launch {
                                         pagerState.animateScrollToPage(page + 1)
                                     }
                                 }
                             } else if (page == pages.lastIndex) {
-                                if (FileSelectorUtil.checkOrCreateLocalModsFolder(context)) {
+                                if (AppFileUtils.checkOrCreateLocalModsFolder(context)) {
                                     onConfirm()
                                 }
                             }
@@ -142,7 +143,7 @@ fun PermissionPagerUI(onConfirm: () -> Unit) {
                             onPermissionGranted = {
                                 isRequestPermissionGranted = false
                                 scope.launch {
-                                    FileSelectorUtil.checkGameFileExists(context)
+                                    GameManager.syncGamesWithDatabase(context)
                                     pagerState.animateScrollToPage(page + 1)
                                 }
                             },

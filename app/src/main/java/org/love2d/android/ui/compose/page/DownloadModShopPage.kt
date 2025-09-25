@@ -63,7 +63,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.love2d.android.room.download.DownloadInfo
 import org.love2d.android.ui.activity.GameManagerViewModel
-import org.love2d.android.util.FileSelectorUtil
+import org.love2d.android.util.ZipManager
 import org.love2d.android.util.startNetUri
 import java.io.File
 
@@ -136,7 +136,7 @@ fun DownloadModShopPage(viewModel: GameManagerViewModel, query: String, sort: St
                     _installStates.update { it + (mod.id to InstallState.Installing) }
                     withContext(Dispatchers.IO) {
                         val zipFile = File(mod.file_path)
-                        val resultName = FileSelectorUtil.installZipFileToModPathNoInsert(context, modPath, zipFile)
+                        val resultName = ZipManager.installModFromFile(context, modPath, zipFile)
                         viewModel.insertNetMod(mod, resultName)
                     }
                     // 修改状态

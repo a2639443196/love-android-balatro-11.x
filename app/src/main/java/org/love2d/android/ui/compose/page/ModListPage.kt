@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import org.love2d.android.room.mod.ModInfo
 import org.love2d.android.ui.activity.GameManagerViewModel
 import org.love2d.android.ui.compose.EmptyLottie
-import org.love2d.android.util.FileSelectorUtil
+import org.love2d.android.util.FilePickerHelper
 import org.love2d.android.util.startNetUri
 
 /**
@@ -69,7 +69,7 @@ fun EnhancedModListPage(
             ) {
                 // EmptyLottie 是您自定义的组件，这里保持原样
                 EmptyLottie(emptyText = "暂未添加模组") {
-                    FileSelectorUtil.openFilePicker(localActivity, FileSelectorUtil.REQUEST_MOD_CODE_FILE)
+                    FilePickerHelper.openFilePicker(localActivity, FilePickerHelper.REQUEST_MOD_CODE_FILE)
                 }
             }
         } else {
@@ -93,7 +93,7 @@ fun EnhancedModListPage(
         if (modList.isNotEmpty()) {
             // --- 悬浮操作按钮 ---
             ExtendedFloatingActionButton(onClick = {
-                FileSelectorUtil.openFilePicker(localActivity, FileSelectorUtil.REQUEST_MOD_CODE_FILE)
+                FilePickerHelper.openFilePicker(localActivity, FilePickerHelper.REQUEST_MOD_CODE_FILE)
             },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)

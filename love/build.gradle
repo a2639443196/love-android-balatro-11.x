@@ -161,15 +161,6 @@ dependencies {
     api 'io.github.petterpx:floatingx-compose:2.3.5'
     api "androidx.annotation:annotation:1.7.1"
 
-    // 网络请求库
-    api "com.squareup.retrofit2:retrofit:2.9.0"
-    api "com.squareup.retrofit2:converter-moshi:2.9.0" // 可选 Gson、Kotlinx-Json
-    api "com.squareup.okhttp3:okhttp:4.12.0"
-    api "com.squareup.okhttp3:logging-interceptor:4.12.0"
-    api "com.squareup.moshi:moshi:1.15.0" // 最新版本
-    api "com.squareup.moshi:moshi-kotlin:1.15.0"
-    kapt "com.squareup.moshi:moshi-kotlin-codegen:1.15.0"
-
     api 'com.github.michaellee123:LiveEventBus:1.8.14'
 
     api "io.coil-kt:coil-compose:2.4.0" // 或最新版

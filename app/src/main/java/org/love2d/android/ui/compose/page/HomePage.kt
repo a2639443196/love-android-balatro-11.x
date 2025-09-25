@@ -35,7 +35,7 @@ import org.love2d.android.ui.activity.Screen
 import org.love2d.android.ui.compose.GameNameInputDialog
 import org.love2d.android.ui.compose.GameRunningTipDialog
 import org.love2d.android.ui.compose.ThemeSwitchButton
-import org.love2d.android.util.FileSelectorUtil
+import org.love2d.android.util.FilePickerHelper
 import org.love2d.android.util.GameStartUtil
 
 /**
@@ -141,9 +141,9 @@ fun GameListPage(
                         modifier = Modifier
                             .fillMaxSize(),
                         addGame = {
-                            FileSelectorUtil.openFilePicker(
+                            FilePickerHelper.openFilePicker(
                                 localActivity,
-                                FileSelectorUtil.REQUEST_GAME_CODE_FILE,
+                                FilePickerHelper.REQUEST_GAME_CODE_FILE,
                             )
                         }, onGameCardClick = {
                             viewModel.currentGame.value = it

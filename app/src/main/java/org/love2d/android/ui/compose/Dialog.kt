@@ -38,7 +38,7 @@ import androidx.compose.ui.window.DialogProperties
 import org.love2d.android.AppConfig.userNotice
 import org.love2d.android.room.game.GameInfo
 import org.love2d.android.ui.compose.page.CameraQrScanner
-import org.love2d.android.util.FileSelectorUtil
+import org.love2d.android.util.GameManager
 import org.love2d.android.util.GameStartUtil
 
 /**
@@ -159,7 +159,7 @@ fun GameNameInputDialog(
                                     Toast.LENGTH_SHORT
                                 ).show()
                             } else {
-                                if (!FileSelectorUtil.checkGameFileExists(trimGameName)) {
+                                if (!GameManager.doesGameFileExist(trimGameName)) {
                                     onConfirm(trimGameName)
                                 } else {
                                     Toast.makeText(

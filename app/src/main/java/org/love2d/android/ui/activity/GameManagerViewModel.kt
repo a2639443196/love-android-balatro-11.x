@@ -7,7 +7,6 @@ import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,9 +16,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.love2d.android.BuiltInMod
 import org.love2d.android.SettingConfig
-import org.love2d.android.bean.LocalModManifestBean
 import org.love2d.android.net.RetrofitClient
 import org.love2d.android.net.UiState
 import org.love2d.android.net.bean.ModListItemBean
@@ -32,8 +29,9 @@ import org.love2d.android.room.game.GameRepository
 import org.love2d.android.room.mod.ModDatabase
 import org.love2d.android.room.mod.ModInfo
 import org.love2d.android.room.mod.ModRepository
-import org.love2d.android.util.FileSelectorUtil
+import org.love2d.android.util.AppFileUtils
 import org.love2d.android.util.MMKVHelper
+import org.love2d.android.util.ZipManager
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -71,12 +69,12 @@ class GameManagerViewModel(
         viewModelScope.launch {
             val file = File(game.filePath)
             if (file.exists()) {
-                FileSelectorUtil.deleteRecursively(file)
+                AppFileUtils.deleteRecursively(file)
             }
             //遍历对应的modPath
             modRepository.deleteModsByInstallPath(game.modPath)
             //删除modPath文件夹
-            FileSelectorUtil.deleteRecursively(File(game.modPath))
+            AppFileUtils.deleteRecursively(File(game.modPath))
             gameRepository.deleteGame(game)
         }
     }
@@ -145,7 +143,7 @@ class GameManagerViewModel(
                 "delete FileName = ${file.name} name = ${mod.name} resultName = ${mod.resultName} isLocal = ${mod.isLocal} "
             )
             if (file.exists()) {
-                FileSelectorUtil.deleteRecursively(file)
+                AppFileUtils.deleteRecursively(file)
             }
             modRepository.deleteMod(mod)
         }
@@ -231,37 +229,6 @@ class GameManagerViewModel(
 
     fun dismissFxDialog() {
         isShowFxDialog.value = false
-    }
-
-    fun getBuiltInModState(gamePath: String, context: Context): StateFlow<List<LocalModManifestBean>> {
-        val moshi = Moshi.Builder().build()
-        val adapter = moshi.adapter(LocalModManifestBean::class.java)
-
-        val builtInModState = MutableStateFlow<List<LocalModManifestBean>>(emptyList())
-
-        viewModelScope.launch(Dispatchers.IO) {
-            getPathMods(gamePath).collect { installedMods ->
-                val list = mutableListOf<LocalModManifestBean>()
-                BuiltInMod.builtInModList.forEach { name ->
-                    val json = FileSelectorUtil.readFileFromZipInAssets(context, name, "manifest.json")
-                    if (json != null) {
-                        val bean = adapter.fromJson(json)
-                        bean?.apply {
-                            fileName = name
-                            val installed = installedMods.find { it.name == this.name }
-                            if (installed != null) {
-                                modInfo = installed
-                                isInstall = true
-                            }
-                            list.add(this)
-                        }
-                    }
-                }
-                builtInModState.value = list
-            }
-        }
-
-        return builtInModState
     }
 
     //-----------------------网络相关-----------------------
@@ -531,10 +498,10 @@ class GameManagerViewModel(
                     val isAutoInstall = MMKVHelper.getBoolean(SettingConfig.AUTO_INSTALL_MOD, true)
                     if (isUpdateOperation && !installPath.isNullOrBlank() || isAutoInstall && !installPath.isNullOrBlank()) {
                         // 调用我们修改过的解压方法，它会处理文件覆盖
-                        val resultName = FileSelectorUtil.installZipFileToModPathNoInsert(
+                        val resultName = ZipManager.installModFromFile(
                             context = context,
                             modPath = installPath,
-                            zipUri = file,
+                            zipFile = file,
                             isUpdate = isUpdateOperation // 关键：传入更新标记
                         )
 
