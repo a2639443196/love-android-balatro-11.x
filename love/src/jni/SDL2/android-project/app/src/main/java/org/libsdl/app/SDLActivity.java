@@ -294,7 +294,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
      * @return arguments for the native application.
      */
     protected String[] getArguments() {
-        return new String[1];
+        return new String[2];
     }
 
     public static void initialize() {

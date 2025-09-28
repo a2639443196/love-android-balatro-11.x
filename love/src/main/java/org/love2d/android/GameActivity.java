@@ -236,7 +236,7 @@ public class GameActivity extends SDLActivity {
                     strings.add(savePath);
                 } else strings.add("");
 
-                args = strings.toArray(new String[strings.size() - 1]);
+                args = strings.toArray(new String[2]);
             } else if (scheme.equals("content")) {
                 Log.d("GameActivity", "Received content:// intent with path: " + path);
                 try {

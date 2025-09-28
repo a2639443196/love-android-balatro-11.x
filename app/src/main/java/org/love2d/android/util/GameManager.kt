@@ -149,7 +149,7 @@ object GameManager {
      * 为指定游戏创建 Mods 文件夹
      */
     fun createGameModsFolder(context: Context, name: String): String {
-        val modsDir = File(context.getExternalFilesDir(null), "${name}_mods")
+        val modsDir = File(context.getExternalFilesDir(null), "mods_${name}")
         if (!modsDir.exists()) {
             modsDir.mkdirs()
         }
@@ -169,8 +169,8 @@ object GameManager {
 
     private fun renameGameModsFolder(context: Context, oldName: String, newName: String): String {
         val modsRoot = context.getExternalFilesDir(null) ?: return ""
-        val oldModsDir = File(modsRoot, "${oldName}_mods")
-        val newModsDir = File(modsRoot, "${newName}_mods")
+        val oldModsDir = File(modsRoot, "mods_${oldName}")
+        val newModsDir = File(modsRoot, "mods_${newName}")
 
         if (oldModsDir.exists() && oldModsDir.isDirectory) {
             if (newModsDir.exists()) {
