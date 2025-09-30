@@ -141,7 +141,8 @@ public class GameActivity extends SDLActivity {
         // These 2 variables must be reset or it will use the existing value.
         gamePath = "";
         storagePermissionUnnecessary = false;
-        embed = getResources().getBoolean(R.bool.embed);
+        //embed = getResources().getBoolean(R.bool.embed);
+        embed = false;
         needToCopyGameInArchive = embed;
         if (!embed) {
             Intent intent = getIntent();
