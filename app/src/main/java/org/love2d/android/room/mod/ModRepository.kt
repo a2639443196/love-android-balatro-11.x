@@ -51,6 +51,10 @@ class ModRepository(private val dao: ModInfoDao) {
         return dao.getByModId(modId)
     }
 
+    suspend fun getAllModByModId(modId: String): List<ModInfo> {
+        return dao.getAllByModId(modId)
+    }
+
     suspend fun existsModByModId(modId: String): Boolean {
         return dao.existsByModId(modId)
     }

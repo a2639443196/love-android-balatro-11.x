@@ -1,5 +1,6 @@
 package org.love2d.android.util
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -18,10 +19,10 @@ import com.google.accompanist.permissions.shouldShowRationale
  */
 object PermissionUtil {
 
-    val MANAGE_EXTERNAL_STORAGE = listOf(android.Manifest.permission.MANAGE_EXTERNAL_STORAGE)
+    val MANAGE_EXTERNAL_STORAGE = listOf(Manifest.permission.MANAGE_EXTERNAL_STORAGE)
     val READ_AND_WRITE_EXTERNAL_STORAGE = listOf(
-        android.Manifest.permission.READ_EXTERNAL_STORAGE,
-        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        Manifest.permission.READ_EXTERNAL_STORAGE,
+        Manifest.permission.WRITE_EXTERNAL_STORAGE
     )
 
     val STORAGE_PERMISSIONS = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

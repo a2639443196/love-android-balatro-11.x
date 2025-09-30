@@ -5,7 +5,6 @@ import androidx.compose.runtime.MutableState
 import kotlinx.coroutines.flow.MutableStateFlow
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import org.love2d.android.Net.BASE_URL
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
@@ -20,7 +19,7 @@ object RetrofitClient {
 
     val api: HApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(Net.BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create()) // 可换 Gson
             .build()

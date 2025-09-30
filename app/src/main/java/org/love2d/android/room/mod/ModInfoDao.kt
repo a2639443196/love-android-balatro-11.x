@@ -66,6 +66,10 @@ interface ModInfoDao {
     @Query("SELECT * FROM mod_list WHERE id = :modId LIMIT 1")
     suspend fun getByModId(modId: String): ModInfo?
 
+    /** 获取所有 modId 相同的 mod */
+    @Query("SELECT * FROM mod_list WHERE id = :modId")
+    suspend fun getAllByModId(modId: String): List<ModInfo>
+
     /** 判断是否存在指定业务 ID */
     @Query("SELECT EXISTS(SELECT 1 FROM mod_list WHERE id = :modId)")
     suspend fun existsByModId(modId: String): Boolean

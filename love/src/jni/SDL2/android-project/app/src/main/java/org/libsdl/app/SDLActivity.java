@@ -49,6 +49,9 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.love2d.android.SettingConfig;
+import org.love2d.android.util.MMKVGetHelper;
+
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Locale;
@@ -221,8 +224,16 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     protected static SDLGenericMotionListener_API12 mMotionListener;
     protected static HIDDeviceManager mHIDDeviceManager;
 
+    private static boolean screenLockLeft;
+    private static boolean screenLockRight;
+
     // This is what SDL runs in. It invokes SDL_main(), eventually
     protected static Thread mSDLThread;
+
+    static {
+        screenLockLeft = MMKVGetHelper.INSTANCE.getBoolean(SettingConfig.SCREEN_LOCK_LEFT, false);
+        screenLockRight = MMKVGetHelper.INSTANCE.getBoolean(SettingConfig.SCREEN_LOCK_RIGHT, false);
+    }
 
     protected static SDLGenericMotionListener_API12 getMotionListener() {
         if (mMotionListener == null) {
@@ -294,7 +305,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
      * @return arguments for the native application.
      */
     protected String[] getArguments() {
-        return new String[2];
+        return new String[1];
     }
 
     public static void initialize() {
@@ -1240,6 +1251,23 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         try {
             if (getContext() == null) {
                 return false;
+            }
+
+            Log.e("HJR-SDL ", "screenLockLeft = " + screenLockLeft + " screenLockRight = " + screenLockRight);
+
+            if (screenLockLeft) {
+                // ============= 在这里添加 hint 设置代码 =============
+                // 使用 hint 强制设置屏幕为横屏
+                // "SDL_HINT_ORIENTATIONS" 对应的环境变量名是 "SDL_ORIENTATIONS"
+                nativeSetenv("SDL_IOS_ORIENTATIONS", "LandscapeLeft");
+                // =================================================
+            }
+            if (screenLockRight) {
+                // ============= 在这里添加 hint 设置代码 =============
+                // 使用 hint 强制设置屏幕为横屏
+                // "SDL_HINT_ORIENTATIONS" 对应的环境变量名是 "SDL_ORIENTATIONS"
+                nativeSetenv("SDL_IOS_ORIENTATIONS", "LandscapeRight");
+                // =================================================
             }
 
             ApplicationInfo applicationInfo = getContext().getPackageManager().getApplicationInfo(getContext().getPackageName(), PackageManager.GET_META_DATA);

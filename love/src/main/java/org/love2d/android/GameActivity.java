@@ -146,7 +146,6 @@ public class GameActivity extends SDLActivity {
         if (!embed) {
             Intent intent = getIntent();
             modPath = intent.getStringExtra("modPath");
-            savePath = intent.getStringExtra("savePath");
             handleIntent(intent);
             intent.setData(null);
         }
@@ -232,11 +231,7 @@ public class GameActivity extends SDLActivity {
                     strings.add(modPath);
                 } else strings.add("");
 
-                if (!TextUtils.isEmpty(savePath)) {
-                    strings.add(savePath);
-                } else strings.add("");
-
-                args = strings.toArray(new String[2]);
+                args = strings.toArray(new String[1]);
             } else if (scheme.equals("content")) {
                 Log.d("GameActivity", "Received content:// intent with path: " + path);
                 try {

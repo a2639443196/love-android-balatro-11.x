@@ -46,7 +46,7 @@ fun ModPage(
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
-    val title = listOf("已安装", "内置模组")
+    val title = listOf("已安装", "内置工具")
 
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { title.size })
 
@@ -97,6 +97,15 @@ fun ModPage(
                                 ) { mod ->
                                     viewModel.deleteMod(mod)
                                 }
+                            }
+
+                            else -> {
+                                InnerToolPage(
+                                    navController,
+                                    localActivity,
+                                    gameInfoState.value?.modPath.orEmpty(),
+                                    viewModel
+                                )
                             }
                         }
                     }

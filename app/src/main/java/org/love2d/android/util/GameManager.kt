@@ -9,7 +9,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.love2d.android.AppConstants
 import org.love2d.android.room.game.GameInfo
-import org.love2d.android.ui.compose.page.getSaveFile
 import java.io.File
 import java.util.zip.ZipFile
 
@@ -33,13 +32,12 @@ object GameManager {
             CoroutineScope(Dispatchers.IO).launch {
                 val name = fileName.replace(".love", "")
                 val modsPath = createGameModsFolder(context, name)
-                val savePath = createSavePath(context, name)
 
                 val game = GameInfo(
                     name = name,
                     createTime = System.currentTimeMillis(),
                     filePath = destFile.absolutePath,
-                    savePath = savePath.absolutePath,
+                    savePath = "",
                     modPath = modsPath,
                     lastPlayed = 0
                 )
@@ -102,11 +100,10 @@ object GameManager {
                 .forEach { file ->
                     val name = file.nameWithoutExtension
                     val modsPath = createGameModsFolder(context, name)
-                    val savePath = createSavePath(context, name)
                     val gameInfo = GameInfo(
                         name = name,
                         filePath = file.absolutePath,
-                        savePath = savePath.absolutePath,
+                        savePath = "",
                         modPath = modsPath,
                         lastPlayed = System.currentTimeMillis()
                     )
@@ -154,17 +151,6 @@ object GameManager {
             modsDir.mkdirs()
         }
         return modsDir.absolutePath
-    }
-
-    /**
-     * 为指定游戏创建存档文件夹
-     */
-    suspend fun createSavePath(context: Context, gameName: String): File {
-        val file = getSaveFile(context, gameName)
-        if (!file.exists()) {
-            file.mkdirs()
-        }
-        return file
     }
 
     private fun renameGameModsFolder(context: Context, oldName: String, newName: String): String {

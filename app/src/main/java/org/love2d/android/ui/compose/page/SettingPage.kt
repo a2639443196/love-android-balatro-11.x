@@ -55,9 +55,6 @@ enum class SettingControlType {
  */
 @Composable
 fun SettingPage() {
-    // 用于控制开关状态的示例
-    var enableTouch2Mouse by remember { mutableStateOf(MMKVHelper.getBoolean(SettingConfig.TOUCH_TO_MOUSE, false)) }
-
     // 用于控制屏幕锁定(左)开关状态的示例
     var enableScreenLockLeft by remember { mutableStateOf(MMKVHelper.getBoolean(SettingConfig.SCREEN_LOCK_LEFT, false)) }
     // 用于控制屏幕锁定(右)开关状态的示例
@@ -81,7 +78,7 @@ fun SettingPage() {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 SectionHeader("通用")
-                
+
                 SettingCard(
                     icon = Icons.Outlined.ScreenLockLandscape,
                     title = "横屏锁定（左）",
@@ -136,28 +133,6 @@ fun SettingPage() {
 
         item {
             Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        // --- 通知设置 ---
-        item {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                SectionHeader("实验性功能")
-                // 消息通知：带有 Switch 控件
-                SettingCard(
-                    icon = Icons.Outlined.Mouse,
-                    title = "模拟鼠标事件",
-                    content = "打开后会将触屏模拟为鼠标",
-                    controlType = SettingControlType.SWITCH,
-                    switchState = enableTouch2Mouse,
-                    onSwitchChange = {
-                        enableTouch2Mouse = it
-                        MMKVHelper.putBoolean(SettingConfig.TOUCH_TO_MOUSE, enableTouch2Mouse)
-                    }
-                )
-            }
         }
     }
 }

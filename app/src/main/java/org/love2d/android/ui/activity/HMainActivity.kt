@@ -17,14 +17,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.jeremyliao.liveeventbus.LiveEventBus
 import kotlinx.coroutines.launch
 import org.love2d.android.AppConfig
 import org.love2d.android.BaseComposeActivity
+import org.love2d.android.script.GLSLFixerScript
 import org.love2d.android.ui.compose.page.CreateModPackagePage
 import org.love2d.android.ui.compose.page.DownloadInfoModPage
 import org.love2d.android.ui.compose.page.EnhancedLogDetailPage
@@ -33,7 +36,7 @@ import org.love2d.android.ui.compose.page.FinalFixedHeaderPage
 import org.love2d.android.ui.compose.page.GameDetailPage
 import org.love2d.android.ui.compose.page.HomePage
 import org.love2d.android.ui.compose.page.ModPage
-import org.love2d.android.ui.compose.page.SaveListPage
+import org.love2d.android.ui.compose.page.ShadersFilePage
 import org.love2d.android.ui.compose.page.SplashPage
 import org.love2d.android.ui.resource.AppRoot
 import org.love2d.android.ui.resource.LocalUserPreferredTheme
@@ -42,6 +45,7 @@ import org.love2d.android.util.GameManager
 import org.love2d.android.util.GameStartUtil
 import org.love2d.android.util.MMKVHelper
 import org.love2d.android.util.ZipManager
+import java.net.URLDecoder
 import kotlin.system.exitProcess
 
 /**
@@ -273,16 +277,32 @@ fun HAppNavHost(
                 DownloadInfoModPage(navController = navController, viewModel = viewModel)
             }
 
-            composable(Screen.SAVE_MANAGER.name, enterTransition = {
-                fadeIn(animationSpec = tween(durationMillis = 300))
-            }, exitTransition = {
-                fadeOut(animationSpec = tween(durationMillis = 300))
-            }, popEnterTransition = {
-                fadeIn(animationSpec = tween(durationMillis = 300))
-            }, popExitTransition = {
-                fadeOut(animationSpec = tween(durationMillis = 300))
-            }) {
-                SaveListPage(navController = navController, viewModel = viewModel)
+            // --- 在这里添加新的页面路由 ---
+            composable(
+                // 1. 定义路由，并用 "{}" 声明一个名为 "shaderPath" 的参数
+                route = Screen.SHADERS_FIXER.name + "/{shaderPath}",
+                // 2. 定义参数类型
+                arguments = listOf(navArgument("shaderPath") { type = NavType.StringType }),
+                // 您可以沿用其他页面的过渡动画效果
+                enterTransition = { fadeIn(animationSpec = tween(durationMillis = 300)) },
+                exitTransition = { fadeOut(animationSpec = tween(durationMillis = 300)) },
+                popEnterTransition = { fadeIn(animationSpec = tween(durationMillis = 300)) },
+                popExitTransition = { fadeOut(animationSpec = tween(durationMillis = 300)) }
+            ) { backStackEntry ->
+                // 3. 从路由中获取参数值
+                val encodedPath = backStackEntry.arguments?.getString("shaderPath")
+                if (encodedPath != null) {
+                    // 4. 对路径进行解码，以防包含特殊字符
+                    val shaderPath = URLDecoder.decode(encodedPath, "UTF-8")
+                    ShadersFilePage(
+                        navController = navController,
+                        context = context,
+                        shadersFolderPath = shaderPath
+                    )
+                } else {
+                    // 如果路径为空，可以自动返回上一页
+                    navController.popBackStack()
+                }
             }
         }
     }

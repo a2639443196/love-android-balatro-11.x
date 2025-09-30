@@ -6,10 +6,11 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.withTranslation
 
 class CursorView @JvmOverloads constructor(
     context: Context,
-    attrs: AttributeSet? = null
+    attrs: AttributeSet? = null,
 ) : View(context, attrs) {
 
     enum class StyleType {
@@ -96,33 +97,32 @@ class CursorView @JvmOverloads constructor(
         super.onDraw(canvas)
         if (cursorX < 0 || cursorY < 0) return
 
-        canvas.save()
-        canvas.translate(cursorX, cursorY)
-        canvas.rotate(rotationAngle)
+        canvas.withTranslation(cursorX, cursorY) {
+            rotate(rotationAngle)
 
-        when (styleType) {
-            StyleType.DEFAULT -> {
+            when (styleType) {
+                StyleType.DEFAULT -> {
 //                canvas.drawPath(tailPath, cursorPaintStroke)
 //                canvas.drawPath(tailPath, cursorPaintFill)
 
-                // 先描边再填充，确保边框在上层
-                canvas.drawPath(cursorPath, cursorPaintStroke)
-                canvas.drawPath(cursorPath, cursorPaintFill)
-            }
+                    // 先描边再填充，确保边框在上层
+                    drawPath(cursorPath, cursorPaintStroke)
+                    drawPath(cursorPath, cursorPaintFill)
+                }
 
-            StyleType.TEXT -> {
-                canvas.drawText(customText, 0f, 0f, textPaint)
-            }
+                StyleType.TEXT -> {
+                    drawText(customText, 0f, 0f, textPaint)
+                }
 
-            StyleType.IMAGE -> {
-                customImage?.let {
-                    val half = customImageSize / 2
-                    canvas.drawBitmap(it, -half, -half, null)
+                StyleType.IMAGE -> {
+                    customImage?.let {
+                        val half = customImageSize / 2
+                        drawBitmap(it, -half, -half, null)
+                    }
                 }
             }
-        }
 
-        canvas.restore()
+        }
     }
 
     // --- 更新位置 ---

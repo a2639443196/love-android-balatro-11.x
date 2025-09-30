@@ -1,6 +1,5 @@
 package org.love2d.android.ui.compose.page
 
-import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -26,7 +25,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Star
@@ -35,7 +33,6 @@ import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -43,6 +40,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,7 +51,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import org.love2d.android.net.UiState
 import org.love2d.android.room.download.DownloadInfo
@@ -80,9 +77,7 @@ fun ModShopPage(viewModel: GameManagerViewModel, query: String, sort: String) {
         if (query.isBlank()) {
             // 如果 query 为空，说明是浏览模式，可以按需加载主列表
             // 为了避免重复加载，可以加一个判断
-            if (viewModel.modUiState.value !is UiState.Success) {
-                viewModel.getModList()
-            }
+            viewModel.getModList(true)
         } else {
             // 如果 query 不为空，则执行新的搜索
             viewModel.searchMods(query, isNewSearch = true)

@@ -159,9 +159,6 @@ object GameStartUtil {
                 Log.e("HJR-Game", "modPath ${game.modPath}")
                 intent.putExtra("modPath", game.modPath)
             }
-            if (game.savePath.isNotBlank()) {
-                intent.putExtra("savePath", game.savePath)
-            }
             currentRunningGame.value = Pair(true, game)
             context.startActivity(intent)
         }, 500) // 稍微延迟一下，确保进程干净结束

@@ -1,5 +1,7 @@
 package org.love2d.android.util
 
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 /**
@@ -14,8 +16,8 @@ object TimeUtil {
     fun timestampToTime(timestamp: Long?): String {
         if (timestamp == null || timestamp == 0L) return "暂无"
         try {
-            val time = java.util.Date(timestamp)
-            val format = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val time = Date(timestamp)
+            val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             return format.format(time)
         } catch (e: Exception) {
             return "暂无"

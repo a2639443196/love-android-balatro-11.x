@@ -2,10 +2,8 @@ package org.love2d.android.room.download
 
 import android.os.Parcelable
 import androidx.room.Entity
-import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import com.squareup.moshi.JsonClass
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.parcelize.Parcelize
 import org.love2d.android.util.TimeUtil
 

@@ -107,7 +107,7 @@ class GameManagerViewModel(
     }
 
     suspend fun updateNetMod(downloadInfo: DownloadInfo) {
-        val modInfo = modRepository.getModByModId(downloadInfo.id)
+        val modInfo = modRepository.getModInPath(currentGame.value?.modPath ?: "", downloadInfo.id)
         modInfo?.let {
             Log.e("HJR", "Update LocalMod = $modInfo")
             modInfo.updated_at = downloadInfo.updated_at
@@ -255,14 +255,24 @@ class GameManagerViewModel(
 
             val localMod = localModsMap[remoteMod.id]
 
-            val newState = if (localMod == null) {
+            val currentInstallMod = localMod?.id.let {
+                val allModByModId = modRepository.getAllModByModId(it ?: "")
+                val modInfo = allModByModId.find { it.installPath == currentGame.value?.modPath }
+                modInfo
+            }
+
+            val newState = if (localMod == null || currentInstallMod == null) {
                 // 本地没有，就是未安装状态
                 DownloadState.Idle
             } else {
                 // 本地有，需要比对版本号
                 // 注意：这里的版本号比较直接使用字符串对比，对于 "10.0" vs "9.0" 可能会出错。
                 // 建议引入一个专门的版本号比较库（如 SemVer）来确保比较的准确性。
+                Log.e("HJR", "remoteMod.version = ${remoteMod.version} localMod.version = ${localMod.version}")
+                Log.e("HJR", "localMod.version = ${localMod.version} currentInstallMod.version = ${currentInstallMod.version}")
                 if (remoteMod.version > localMod.version) {
+                    DownloadState.Updatable // 远程版本 > 本地版本，可更新
+                } else if (localMod.version > currentInstallMod.version) {
                     DownloadState.Updatable // 远程版本 > 本地版本，可更新
                 } else {
                     DownloadState.Installed // 否则，视为已安装

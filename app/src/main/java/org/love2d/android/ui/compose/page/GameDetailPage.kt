@@ -70,7 +70,6 @@ import org.love2d.android.ui.activity.Screen
 import org.love2d.android.ui.compose.ConfirmDialog
 import org.love2d.android.ui.compose.GameNameInputDialog
 import org.love2d.android.ui.compose.GameRunningTipDialog
-import org.love2d.android.util.AppFileUtils
 import org.love2d.android.util.GameManager
 import org.love2d.android.util.GameStartUtil
 import org.love2d.android.util.TimeUtil
