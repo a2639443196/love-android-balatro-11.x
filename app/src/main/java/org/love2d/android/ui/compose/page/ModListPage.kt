@@ -152,18 +152,18 @@ fun EnhancedModListPage(
             // 我们可以用 Column 的 verticalArrangement 来控制，这里手动排列
 
             // 1. 分享整合包 (仅在有模组时显示)
-            if (modList.isNotEmpty()) {
-                FabMenuItemAnimated(
-                    isVisible = isFabMenuExpanded,
-                    text = "分享整合包",
-                    icon = Icons.Default.Share,
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    onClick = {
-                        navController?.navigate("mod_packager_share")
-                        isFabMenuExpanded = false
-                    }
-                )
-            }
+            //if (modList.isNotEmpty()) {
+            //    FabMenuItemAnimated(
+            //        isVisible = isFabMenuExpanded,
+            //        text = "分享整合包",
+            //        icon = Icons.Default.Share,
+            //        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            //        onClick = {
+            //            navController?.navigate("mod_packager_share")
+            //            isFabMenuExpanded = false
+            //        }
+            //    )
+            //}
 
             // 2. 添加整合包
             FabMenuItemAnimated(
