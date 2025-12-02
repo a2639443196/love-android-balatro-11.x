@@ -8,7 +8,7 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 @Entity(tableName = "games")
 data class GameInfo(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,   // 唯一ID，比如路径、UUID等
+    @PrimaryKey val id: String = "",   // 唯一ID，支持字符串如 "va231des"
     var name: String,
     var filePath: String,
     var modPath : String,
@@ -16,5 +16,7 @@ data class GameInfo(
     var savePath : String,
     var isEnableMod : Boolean = true,
     var createTime : Long = 0L,
-    var lastPlayed: Long = 0L
+    var lastPlayed: Long = 0L,
+    var totalPlayTime: Long = 0L,     // 总游玩时长（毫秒）
+    var sessionStartTime: Long = 0L   // 当前会话开始时间（毫秒）
 ) : Parcelable

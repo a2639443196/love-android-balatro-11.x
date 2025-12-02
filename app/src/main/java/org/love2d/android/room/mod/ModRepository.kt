@@ -74,4 +74,49 @@ class ModRepository(private val dao: ModInfoDao) {
     suspend fun existsModInPath(installPath: String, modId: String): Boolean {
         return dao.existsByInstallPathAndModId(installPath, modId)
     }
+
+    // 新增：按游戏ID管理模组的方法
+    suspend fun getAllModByGameId(gameId: String): List<ModInfo> {
+        return dao.getAllByGameId(gameId)
+    }
+
+    fun getModsByGameIdFlow(gameId: String): Flow<List<ModInfo>> {
+        return dao.getAllByGameIdFlow(gameId)
+    }
+
+    suspend fun insertModForGame(gameId: String, mod: ModInfo): Long {
+        mod.game_id = gameId
+        return dao.insert(mod)
+    }
+
+    suspend fun updateModForGame(gameId: String, mod: ModInfo) {
+        mod.game_id = gameId
+        dao.update(mod)
+    }
+
+    suspend fun deleteModInGame(gameId: String, modId: String) {
+        dao.deleteByGameIdAndModId(gameId, modId)
+    }
+
+    suspend fun deleteModsForGame(gameId: String) {
+        dao.deleteByGameId(gameId)
+    }
+
+    suspend fun getModInGame(gameId: String, modId: String): ModInfo? {
+        return dao.getModInGame(gameId, modId)
+    }
+
+    suspend fun existsModInGame(gameId: String, modId: String): Boolean {
+        return dao.existsByGameIdAndModId(gameId, modId)
+    }
+
+    suspend fun migrateModToGame(mod: ModInfo, gameId: String) {
+        mod.game_id = gameId
+        dao.update(mod)
+    }
+
+    // 获取游戏模组数量统计（用于调试）
+    suspend fun getModCountByGame(): List<ModInfoDao.GameModCount> {
+        return dao.getModCountByGame()
+    }
 }

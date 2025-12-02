@@ -83,7 +83,7 @@ class GameManagerViewModel(
         return gameRepository.getGameById(id)
     }
 
-    suspend fun insertNetMod(downloadInfo: DownloadInfo, resultName: String) {
+    suspend fun insertNetMod(downloadInfo: DownloadInfo, resultName: String, gameId: String? = null) {
         val modInfo = ModInfo()
         modInfo.isLocal = false
         modInfo.resultName = resultName
@@ -95,6 +95,7 @@ class GameManagerViewModel(
         modInfo.description = downloadInfo.description
         modInfo.downloaded_time = downloadInfo.downloaded_time
         modInfo.game_name = downloadInfo.game_name
+        modInfo.game_id = gameId ?: currentGame.value?.id ?: "" // 关联到当前游戏
         modInfo.github_repo_url = downloadInfo.github_repo_url
         modInfo.id = downloadInfo.id
         modInfo.name = downloadInfo.name
@@ -107,11 +108,13 @@ class GameManagerViewModel(
     }
 
     suspend fun updateNetMod(downloadInfo: DownloadInfo) {
-        val modInfo = modRepository.getModInPath(currentGame.value?.modPath ?: "", downloadInfo.id)
+        val currentGameId = currentGame.value?.id ?: ""
+        val modInfo = modRepository.getModInGame(currentGameId, downloadInfo.id)
         modInfo?.let {
             Log.e("HJR", "Update LocalMod = $modInfo")
             modInfo.updated_at = downloadInfo.updated_at
             modInfo.version = downloadInfo.version
+            modInfo.game_id = currentGameId // 确保关联到当前游戏
             viewModelScope.launch { modRepository.updateMod(modInfo) }
         }
     }
@@ -241,10 +244,17 @@ class GameManagerViewModel(
 
     // 在 GameManagerViewModel 类中添加这个新方法
     private suspend fun updateDownloadStatesBasedOnLocalMods(remoteMods: List<DownloadInfo>) {
-        // 获取当前游戏已安装的所有模组，以便进行比对
-        // 注意：这里我们假设 `currentGame.value?.modPath` 存有当前游戏有效的模组安装路径
-        // 一次性从数据库获取所有已安装模组的信息
-        val localMods = downloadRepository.getAllDownloadList()
+        // 获取当前游戏的ID
+        val currentGameId = currentGame.value?.id
+
+        if (currentGameId.isNullOrBlank()) {
+            // 如果没有当前游戏，清空所有状态
+            _downloadStates.update { emptyMap() }
+            return
+        }
+
+        // 一次性从数据库获取当前游戏已安装的所有模组信息
+        val localMods = modRepository.getAllModByGameId(currentGameId)
         val localModsMap = localMods.associateBy { it.id } // 转换为Map以提高查找效率
 
         remoteMods.forEach { remoteMod ->
@@ -255,11 +265,8 @@ class GameManagerViewModel(
 
             val localMod = localModsMap[remoteMod.id]
 
-            val currentInstallMod = localMod?.id.let {
-                val allModByModId = modRepository.getAllModByModId(it ?: "")
-                val modInfo = allModByModId.find { it.installPath == currentGame.value?.modPath }
-                modInfo
-            }
+            // 检查当前游戏是否已安装此模组
+            val currentInstallMod = localMod
 
             val newState = if (localMod == null || currentInstallMod == null) {
                 // 本地没有，就是未安装状态
@@ -522,7 +529,7 @@ class GameManagerViewModel(
                             updateNetMod(mod)
                         } else {
                             Log.e("HJR","插入本地mod数据库")
-                            insertNetMod(mod, resultName)
+                            insertNetMod(mod, resultName, currentGame.value?.id)
                         }
 
                         withContext(Dispatchers.Main) {

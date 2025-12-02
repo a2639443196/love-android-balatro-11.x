@@ -12,9 +12,35 @@ import kotlinx.coroutines.withContext
 import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.FileHeader
 import org.love2d.android.room.mod.ModInfo
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
+
+/**
+ * 安全关闭流，忽略异常
+ */
+private fun BufferedInputStream?.closeQuietly() {
+    try {
+        this?.close()
+    } catch (e: Exception) {
+        Log.w("ZipManager", "关闭输入流时发生异常", e)
+    }
+}
+
+/**
+ * 安全关闭流，忽略异常
+ */
+private fun BufferedOutputStream?.closeQuietly() {
+    try {
+        this?.close()
+    } catch (e: Exception) {
+        Log.w("ZipManager", "关闭输出流时发生异常", e)
+    }
+}
 
 /**
  * 封装所有与 ZIP 文件相关的操作，使用 Zip4j 库实现。
@@ -22,24 +48,75 @@ import java.io.IOException
  */
 object ZipManager {
 
+    // 限制最大文件大小为100MB，防止ZIP炸弹攻击
+    private const val MAX_FILE_SIZE = 100 * 1024 * 1024L // 100MB
+
+    /**
+     * 安全删除文件，并记录日志
+     */
+    private fun safeDeleteFile(file: File, description: String): Boolean {
+        return try {
+            if (file.exists()) {
+                val deleted = file.delete()
+                if (deleted) {
+                    Log.d("ZipManager", "成功删除 $description: ${file.absolutePath}")
+                } else {
+                    Log.w("ZipManager", "删除失败 $description: ${file.absolutePath}")
+                }
+                deleted
+            } else {
+                Log.d("ZipManager", "$description 不存在，无需删除: ${file.absolutePath}")
+                true
+            }
+        } catch (e: Exception) {
+            Log.e("ZipManager", "删除 $description 时发生异常: ${e.message}", e)
+            false
+        }
+    }
+
     /**
      * 从 Uri 安装一个 Mod。
      * 由于 zip4j 需要文件句柄，我们会先将 Uri 内容复制到缓存文件中再处理。
      */
-    fun installModFromUri(context: Context, modPath: String, zipUri: Uri) {
+    fun installModFromUri(context: Context, modPath: String, zipUri: Uri, gameId: String = "", gameName: String = "") {
         val fileNameWithExt = UriUtil.getFileNameFromUri(context, zipUri) ?: "temp.zip"
 
+        // 验证文件名，防止路径遍历攻击
+        if (fileNameWithExt.contains("..") || fileNameWithExt.contains("/") || fileNameWithExt.contains("\\")) {
+            Log.e("ZipManager", "不安全的文件名: $fileNameWithExt")
+            Toast.makeText(context, "文件名不安全", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         // 创建一个临时文件来存放 Uri 的内容
-        val tempZipFile = File(context.cacheDir, fileNameWithExt)
+        val tempZipFile = File(context.cacheDir, "${System.currentTimeMillis()}_$fileNameWithExt")
 
         CoroutineScope(Dispatchers.IO).launch {
+            var inputStream: BufferedInputStream? = null
+            var outputStream: BufferedOutputStream? = null
+
             try {
-                // 1. 将 Uri 的内容复制到临时文件
-                context.contentResolver.openInputStream(zipUri)?.use { inputStream ->
-                    FileOutputStream(tempZipFile).use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
+                // 1. 将 Uri 的内容复制到临时文件，使用缓冲流提高性能
+                inputStream = context.contentResolver.openInputStream(zipUri)?.let {
+                    BufferedInputStream(it)
+                } ?: run {
+                    Log.e("ZipManager", "无法打开输入流: $zipUri")
+                    return@launch
                 }
+
+                // 检查文件大小
+                val size = inputStream.available().toLong()
+                if (size > MAX_FILE_SIZE) {
+                    Log.e("ZipManager", "文件过大: $size bytes, 超过限制: $MAX_FILE_SIZE bytes")
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "文件过大，超过100MB限制", Toast.LENGTH_LONG).show()
+                    }
+                    return@launch
+                }
+
+                outputStream = BufferedOutputStream(FileOutputStream(tempZipFile))
+                inputStream.copyTo(outputStream)
+                outputStream.flush()
 
                 // 2. 调用基于 File 的安装方法
                 val resultName = installModFromFile(context, modPath, tempZipFile, isUpdate = false)
@@ -51,18 +128,22 @@ object ZipManager {
                         name = resultName
                         from = fileNameWithExt
                         installPath = modPath
+                        game_id = gameId  // 关联到指定游戏
+                        game_name = gameName  // 设置游戏名称
                     }
                     ModDbUtil.insertMod(modInfo)
                 }
 
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("ZipManager", "Mod安装失败", e)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "Mod 安装失败: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             } finally {
-                // 4. 删除临时文件
-                tempZipFile.delete()
+                // 4. 安全关闭流和删除临时文件
+                inputStream?.closeQuietly()
+                outputStream?.closeQuietly()
+                safeDeleteFile(tempZipFile, "临时ZIP文件")
             }
         }
     }
@@ -71,7 +152,7 @@ object ZipManager {
      * 从 Assets 目录安装一个 Mod。
      * 同样，先复制到缓存文件再处理。
      */
-    fun installModFromAssets(context: Context, modPath: String, assetZipName: String) {
+    fun installModFromAssets(context: Context, modPath: String, assetZipName: String, gameId: String = "", gameName: String = "") {
         val tempZipFile = File(context.cacheDir, assetZipName)
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -93,6 +174,8 @@ object ZipManager {
                         name = resultName
                         from = assetZipName
                         installPath = modPath
+                        game_id = gameId  // 关联到指定游戏
+                        game_name = gameName  // 设置游戏名称
                     }
                     ModDbUtil.insertMod(modInfo)
                 }
@@ -172,29 +255,62 @@ object ZipManager {
      * 将 Base64 字符串解码为 ZIP 文件并解压到特定目录。
      */
     fun decodeBase64AndUnzip(context: Context, base64: String) {
-        val outputZip = File(context.cacheDir, "wifiSave-LOVE.zip")
+        val outputZip = File(context.cacheDir, "${System.currentTimeMillis()}_wifiSave-LOVE.zip")
+        var zipFile: ZipFile? = null
+
         try {
-            // 1. 解码并写入临时 ZIP 文件
+            // 1. 验证和Base64解码
+            if (base64.isBlank()) {
+                Log.e("ZipManager", "Base64字符串为空")
+                return
+            }
+
             val bytes = Base64.decode(base64, Base64.DEFAULT)
+
+            // 检查解码后的数据大小
+            if (bytes.size > MAX_FILE_SIZE) {
+                Log.e("ZipManager", "Base64解码后数据过大: ${bytes.size} bytes")
+                return
+            }
+
+            // 2. 写入临时 ZIP 文件
             outputZip.writeBytes(bytes)
             Log.d("ZipManager", "Base64 解码并写入到: ${outputZip.absolutePath}")
 
-            // 2. 准备目标目录
+            // 3. 验证ZIP文件有效性
+            if (!outputZip.exists() || outputZip.length() == 0L) {
+                Log.e("ZipManager", "ZIP文件创建失败或为空")
+                return
+            }
+
+            // 4. 准备目标目录
             val outputDir = File(context.getExternalFilesDir(null), "save/love/wifi-save-LOVE")
             if (outputDir.exists()) {
                 AppFileUtils.deleteRecursively(outputDir)
             }
             outputDir.mkdirs()
 
-            // 3. 使用 zip4j 解压
-            ZipFile(outputZip).extractAll(outputDir.absolutePath)
+            // 5. 使用 zip4j 解压
+            zipFile = ZipFile(outputZip)
+            zipFile.extractAll(outputDir.absolutePath)
             Log.d("ZipManager", "成功解压到: ${outputDir.absolutePath}")
 
+        } catch (e: IllegalArgumentException) {
+            Log.e("ZipManager", "Base64解码失败: ${e.message}")
+        } catch (e: IOException) {
+            Log.e("ZipManager", "文件操作失败: ${e.message}")
         } catch (e: Exception) {
-            e.printStackTrace()
-            Log.e("ZipManager", "解码或解压 Base64 失败: ${e.message}")
+            Log.e("ZipManager", "解码或解压 Base64 失败: ${e.message}", e)
         } finally {
-            outputZip.delete() // 清理临时文件
+            // 6. 清理资源
+            zipFile?.let {
+                try {
+                    it.close()
+                } catch (e: Exception) {
+                    Log.w("ZipManager", "关闭ZipFile时发生异常", e)
+                }
+            }
+            safeDeleteFile(outputZip, "Base64解码临时ZIP文件")
         }
     }
 
@@ -202,17 +318,55 @@ object ZipManager {
      * 将指定目录压缩成 ZIP 文件。
      */
     fun zipDirectory(sourceDir: File, outputZip: File) {
+        var zipFile: ZipFile? = null
+
         try {
             if (!sourceDir.exists() || !sourceDir.isDirectory) {
                 Log.e("ZipManager", "源文件夹不存在或不是一个目录: ${sourceDir.absolutePath}")
                 return
             }
+
+            // 检查源目录是否为空
+            if (sourceDir.listFiles()?.isEmpty() == true) {
+                Log.w("ZipManager", "源文件夹为空: ${sourceDir.absolutePath}")
+                return
+            }
+
             Log.d("ZipManager", "开始压缩目录 ${sourceDir.name} 到 ${outputZip.absolutePath}")
-            ZipFile(outputZip).addFolder(sourceDir)
-            Log.d("ZipManager", "压缩成功")
+
+            // 如果目标文件已存在，先删除
+            if (outputZip.exists()) {
+                safeDeleteFile(outputZip, "已存在的ZIP文件")
+            }
+
+            // 创建父目录
+            outputZip.parentFile?.mkdirs()
+
+            zipFile = ZipFile(outputZip)
+            zipFile.addFolder(sourceDir)
+
+            // 验证压缩结果
+            if (outputZip.exists() && outputZip.length() > 0) {
+                Log.d("ZipManager", "压缩成功，文件大小: ${outputZip.length()} bytes")
+            } else {
+                Log.e("ZipManager", "压缩失败：输出文件无效")
+            }
+
+        } catch (e: SecurityException) {
+            Log.e("ZipManager", "安全权限异常: ${e.message}")
         } catch (e: IOException) {
-            e.printStackTrace()
-            Log.e("ZipManager", "压缩失败: ${e.message}")
+            Log.e("ZipManager", "IO异常: ${e.message}")
+        } catch (e: Exception) {
+            Log.e("ZipManager", "压缩失败: ${e.message}", e)
+        } finally {
+            // 清理资源
+            zipFile?.let {
+                try {
+                    it.close()
+                } catch (e: Exception) {
+                    Log.w("ZipManager", "关闭ZipFile时发生异常", e)
+                }
+            }
         }
     }
 

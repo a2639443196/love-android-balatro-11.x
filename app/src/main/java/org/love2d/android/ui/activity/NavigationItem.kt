@@ -18,6 +18,9 @@ sealed class NavigationItem(val route: String) {
     object ModOnline : NavigationItem(Screen.MOD_ONLINE.name)
     object DownloadInfoList : NavigationItem(Screen.DOWNLOAD_INFO_LIST.name)
     object SaveManager : NavigationItem(Screen.SAVE_MANAGER.name)
+    object ModPackager : NavigationItem(Screen.MOD_PACKAGER.name)
+    object ModPackagerShare : NavigationItem(Screen.MOD_PACKAGER_SHARE.name)
+    object ModPackagerImport : NavigationItem(Screen.MOD_PACKAGER_IMPORT.name)
     object ShadersFixer : NavigationItem(Screen.SHADERS_FIXER.name)
 }
 
@@ -33,5 +36,8 @@ enum class Screen {
     MOD_ONLINE,
     DOWNLOAD_INFO_LIST,
     SAVE_MANAGER,
+    MOD_PACKAGER,
+    MOD_PACKAGER_SHARE,
+    MOD_PACKAGER_IMPORT,
     SHADERS_FIXER
 }

@@ -70,6 +70,84 @@ object ModDbUtil {
         }
     }
 
+    // 新增：按游戏ID管理模组的方法
+    suspend fun getModsByGameId(gameId: String): Flow<List<ModInfo>> {
+        checkInitialized()
+        return withContext(Dispatchers.IO) {
+            db.modInfoDao().getAllByGameIdFlow(gameId)
+        }
+    }
+
+    suspend fun getModsByGameIdSync(gameId: String): List<ModInfo> {
+        checkInitialized()
+        return withContext(Dispatchers.IO) {
+            db.modInfoDao().getAllByGameId(gameId)
+        }
+    }
+
+    suspend fun insertModForGame(gameId: String, mod: ModInfo) {
+        checkInitialized()
+        withContext(Dispatchers.IO) {
+            // 确保模组与游戏关联
+            mod.game_id = gameId
+            db.modInfoDao().insert(mod)
+        }
+    }
+
+    suspend fun updateModForGame(gameId: String, mod: ModInfo) {
+        checkInitialized()
+        withContext(Dispatchers.IO) {
+            // 确保模组与游戏关联
+            mod.game_id = gameId
+            db.modInfoDao().update(mod)
+        }
+    }
+
+    suspend fun deleteModsForGame(gameId: String) {
+        checkInitialized()
+        withContext(Dispatchers.IO) {
+            db.modInfoDao().deleteByGameId(gameId)
+        }
+    }
+
+    suspend fun deleteModInGame(gameId: String, modId: String) {
+        checkInitialized()
+        withContext(Dispatchers.IO) {
+            db.modInfoDao().deleteByGameIdAndModId(gameId, modId)
+        }
+    }
+
+    suspend fun getModInGame(gameId: String, modId: String): ModInfo? {
+        checkInitialized()
+        return withContext(Dispatchers.IO) {
+            db.modInfoDao().getModInGame(gameId, modId)
+        }
+    }
+
+    suspend fun isModInstalledInGame(gameId: String, modId: String): Boolean {
+        checkInitialized()
+        return withContext(Dispatchers.IO) {
+            db.modInfoDao().existsByGameIdAndModId(gameId, modId)
+        }
+    }
+
+    suspend fun migrateModToGame(mod: ModInfo, gameId: String) {
+        checkInitialized()
+        withContext(Dispatchers.IO) {
+            // 迁移现有模组到指定游戏
+            mod.game_id = gameId
+            db.modInfoDao().update(mod)
+        }
+    }
+
+    // 获取游戏模组数量统计（用于调试）
+    suspend fun getModCountByGame(): List<ModInfoDao.GameModCount> {
+        checkInitialized()
+        return withContext(Dispatchers.IO) {
+            db.modInfoDao().getModCountByGame()
+        }
+    }
+
     private fun checkInitialized() {
         if (!ModDbUtil::db.isInitialized) {
             throw IllegalStateException("GameDbUtil is not initialized. Call GameDbUtil.init(context) first.")

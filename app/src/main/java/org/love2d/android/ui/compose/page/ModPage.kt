@@ -93,10 +93,10 @@ fun ModPage(
                                 EnhancedModListPage(
                                     localActivity,
                                     gameInfoState.value?.modPath.orEmpty(),
-                                    viewModel
-                                ) { mod ->
-                                    viewModel.deleteMod(mod)
-                                }
+                                    viewModel,
+                                    modDelete = { mod -> viewModel.deleteMod(mod) },
+                                    navController = navController
+                                )
                             }
 
                             else -> {

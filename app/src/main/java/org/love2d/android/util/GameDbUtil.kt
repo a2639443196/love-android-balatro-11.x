@@ -3,6 +3,8 @@ package org.love2d.android.util
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.love2d.android.room.game.GameDao
 import org.love2d.android.room.game.GameDatabase
@@ -10,62 +12,56 @@ import org.love2d.android.room.game.GameInfo
 
 object GameDbUtil {
 
-    private lateinit var db: GameDatabase
+    @Volatile
+    private var db: GameDatabase? = null
 
-    fun init(context: Context) {
-        if (!::db.isInitialized) {
+    private val initializationMutex = Mutex()
+
+    suspend fun init(context: Context) = initializationMutex.withLock {
+        if (db == null) {
             db = GameDatabase.getInstance(context)
         }
     }
 
     fun getGameDao(): GameDao {
-        checkInitialized()
-        return db.gameDao()
+        return checkInitialized().gameDao()
     }
 
     fun getAllGames(): Flow<List<GameInfo>> {
-        checkInitialized()
-        return db.gameDao().getAllGames()
+        return checkInitialized().gameDao().getAllGames()
     }
 
     suspend fun getGameById(id: String): GameInfo? {
-        checkInitialized()
         return withContext(Dispatchers.IO) {
-            db.gameDao().getGameById(id)
+            checkInitialized().gameDao().getGameById(id)
         }
     }
 
     suspend fun insertGame(game: GameInfo) {
-        checkInitialized()
         withContext(Dispatchers.IO) {
-            db.gameDao().insertGame(game)
+            checkInitialized().gameDao().insertGame(game)
         }
     }
 
     suspend fun updateGame(game: GameInfo) {
-        checkInitialized()
         withContext(Dispatchers.IO) {
-            db.gameDao().updateGame(game)
+            checkInitialized().gameDao().updateGame(game)
         }
     }
 
     suspend fun deleteGame(game: GameInfo) {
-        checkInitialized()
         withContext(Dispatchers.IO) {
-            db.gameDao().deleteGame(game)
+            checkInitialized().gameDao().deleteGame(game)
         }
     }
 
     suspend fun deleteAllGames() {
-        checkInitialized()
         withContext(Dispatchers.IO) {
-            db.gameDao().deleteAllGames()
+            checkInitialized().gameDao().deleteAllGames()
         }
     }
 
-    private fun checkInitialized() {
-        if (!::db.isInitialized) {
-            throw IllegalStateException("GameDbUtil is not initialized. Call GameDbUtil.init(context) first.")
-        }
+    private fun checkInitialized(): GameDatabase {
+        return db ?: throw IllegalStateException("GameDbUtil is not initialized. Call GameDbUtil.init(context) first.")
     }
 }

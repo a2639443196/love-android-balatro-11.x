@@ -330,6 +330,7 @@ public class GameActivity extends SDLActivity {
             Log.d("GameActivity", "Cancelling vibration");
             vibrator.cancel();
         }
+
         LiveEventBus.get("GAME_ACTIVITY_DESTROY", boolean.class).postAcrossProcess(true);
         unregisterReceiver(shutdownCommandReceiver);
         super.onDestroy();
@@ -368,10 +369,16 @@ public class GameActivity extends SDLActivity {
 
     @Keep
     public static String getGamePath() {
+        // 安全检查mSingleton，避免空指针异常
+        if (mSingleton == null || !(mSingleton instanceof GameActivity)) {
+            Log.e("GameActivity", "mSingleton is null or not GameActivity instance");
+            return "";
+        }
+
         GameActivity self = (GameActivity) mSingleton; // use SDL provided one
         Log.d("GameActivity", "called getGamePath(), game path = " + gamePath);
 
-        if (gamePath.length() > 0) {
+        if (gamePath != null && gamePath.length() > 0) {
             if (self.storagePermissionUnnecessary || self.hasExternalStoragePermission()) {
                 return gamePath;
             } else {
@@ -461,6 +468,11 @@ public class GameActivity extends SDLActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                // 安全检查mSingleton，避免空指针异常
+                if (mSingleton == null) {
+                    Log.e("GameActivity", "mSingleton is null, cannot show dialog");
+                    return;
+                }
                 AlertDialog dialog = new AlertDialog.Builder(mSingleton)
                         .setTitle("Audio Recording Permission Missing")
                         .setMessage("It appears that this game uses mic capabilities. The game may not work correctly without mic permission!")
@@ -486,6 +498,11 @@ public class GameActivity extends SDLActivity {
     }
 
     public void showExternalStoragePermissionMissingDialog() {
+        // 安全检查mSingleton，避免空指针异常
+        if (mSingleton == null) {
+            Log.e("GameActivity", "mSingleton is null, cannot show dialog");
+            return;
+        }
         AlertDialog dialog = new AlertDialog.Builder(mSingleton)
                 .setTitle("Storage Permission Missing")
                 .setMessage("LÖVE for Android will not be able to run non-packaged games without storage permission.")

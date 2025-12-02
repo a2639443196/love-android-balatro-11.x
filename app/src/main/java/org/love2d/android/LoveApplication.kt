@@ -3,10 +3,15 @@ package org.love2d.android
 import android.app.Application
 import android.util.Log
 import com.tencent.bugly.crashreport.CrashReport
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.love2d.android.ui.compose.RegexTest
 import org.love2d.android.util.GameDbUtil
 import org.love2d.android.util.GameManager
 import org.love2d.android.util.MMKVHelper
 import org.love2d.android.util.ModDbUtil
+import org.love2d.android.util.ModIsolationDebugger
 import java.io.File
 import kotlin.properties.Delegates
 
@@ -37,10 +42,18 @@ class LoveApplication : Application() {
         //默认路径
         MOD_PATH = File(appContext.getExternalFilesDir(null), "mods").absolutePath
 
+        // 测试游戏名称正则表达式
+        RegexTest.testPattern()
+
+        // 测试模组隔离功能
+        ModIsolationDebugger.testModIsolation()
+
         MMKVHelper.init(appContext)
-        GameDbUtil.init(appContext)
-        ModDbUtil.init(appContext)
-        GameManager.syncGamesWithDatabase(appContext.applicationContext)
+        CoroutineScope(Dispatchers.IO).launch {
+            GameDbUtil.init(appContext)
+            ModDbUtil.init(appContext)
+            GameManager.syncGamesWithDatabase(appContext.applicationContext)
+        }
 
         CrashReport.initCrashReport(applicationContext, "5863f1fa73", true)
     }

@@ -36,6 +36,9 @@ import org.love2d.android.ui.compose.page.FinalFixedHeaderPage
 import org.love2d.android.ui.compose.page.GameDetailPage
 import org.love2d.android.ui.compose.page.HomePage
 import org.love2d.android.ui.compose.page.ModPage
+import org.love2d.android.ui.compose.page.ModPackagerPage
+import org.love2d.android.ui.compose.page.ModPackagerImportPage
+import org.love2d.android.ui.compose.page.SaveManagerPage
 import org.love2d.android.ui.compose.page.ShadersFilePage
 import org.love2d.android.ui.compose.page.SplashPage
 import org.love2d.android.ui.resource.AppRoot
@@ -81,17 +84,29 @@ class HMainActivity : BaseComposeActivity(false) {
             viewModel.gameName.collect { name ->
                 if (name.isCreate) {
                     if (name.gameName.isNotBlank()) {
-                        GameManager.installGame(
-                            localContext, viewModel.fileUrl!!, name.gameName
-                        )
+                        // 安全检查fileUrl，避免空指针异常
+                        val fileUrl = viewModel.fileUrl
+                        if (fileUrl != null) {
+                            GameManager.installGame(
+                                localContext, fileUrl, name.gameName
+                            )
+                        } else {
+                            Toast.makeText(localActivity, "游戏文件路径无效", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 } else {
                     if (name.gameName.isNotBlank()) {
-                        GameManager.renameGame(
-                            localContext,
-                            viewModel.currentGame.value,
-                            name.gameName,
-                        )
+                        // 安全检查currentGame，避免空指针异常
+                        val currentGame = viewModel.currentGame.value
+                        if (currentGame != null) {
+                            GameManager.renameGame(
+                                localContext,
+                                currentGame,
+                                name.gameName,
+                            )
+                        } else {
+                            Toast.makeText(localActivity, "当前游戏信息无效", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
                 viewModel.releaseGameNameField()
@@ -121,10 +136,17 @@ class HMainActivity : BaseComposeActivity(false) {
                 }
 
                 FilePickerHelper.REQUEST_MOD_CODE_FILE -> {
-                    val modPath = viewModel.currentGame.value?.modPath
+                    val currentGame = viewModel.currentGame.value
+                    val modPath = currentGame?.modPath
                     FilePickerHelper.handleZipFileResult(localActivity, data) { modUri ->
-                        // 正确的调用，使用 ZipManager 来处理 ZIP 安装
-                        ZipManager.installModFromUri(localContext, modPath = modPath.orEmpty(), zipUri = modUri)
+                        // 正确的调用，使用 ZipManager 来处理 ZIP 安装，并传递游戏信息
+                        ZipManager.installModFromUri(
+                            localContext,
+                            modPath = modPath.orEmpty(),
+                            zipUri = modUri,
+                            gameId = currentGame?.id ?: "",
+                            gameName = currentGame?.name ?: ""
+                        )
                     }
                 }
 
@@ -303,6 +325,70 @@ fun HAppNavHost(
                     // 如果路径为空，可以自动返回上一页
                     navController.popBackStack()
                 }
+            }
+
+            composable(Screen.SAVE_MANAGER.name, enterTransition = {
+                fadeIn(animationSpec = tween(durationMillis = 300))
+            }, exitTransition = {
+                fadeOut(animationSpec = tween(durationMillis = 300))
+            }, popEnterTransition = {
+                fadeIn(animationSpec = tween(durationMillis = 300))
+            }, popExitTransition = {
+                fadeOut(animationSpec = tween(durationMillis = 300))
+            }) {
+                SaveManagerPage(
+                    navController = navController,
+                    localActivity = localActivity,
+                    viewModel = viewModel
+                )
+            }
+
+            composable("mod_packager", enterTransition = {
+                fadeIn(animationSpec = tween(durationMillis = 300))
+            }, exitTransition = {
+                fadeOut(animationSpec = tween(durationMillis = 300))
+            }, popEnterTransition = {
+                fadeIn(animationSpec = tween(durationMillis = 300))
+            }, popExitTransition = {
+                fadeOut(animationSpec = tween(durationMillis = 300))
+            }) {
+                ModPackagerPage(
+                    viewModel = viewModel,
+                    navController = navController,
+                    localActivity = localActivity
+                )
+            }
+
+            composable("mod_packager_share", enterTransition = {
+                fadeIn(animationSpec = tween(durationMillis = 300))
+            }, exitTransition = {
+                fadeOut(animationSpec = tween(durationMillis = 300))
+            }, popEnterTransition = {
+                fadeIn(animationSpec = tween(durationMillis = 300))
+            }, popExitTransition = {
+                fadeOut(animationSpec = tween(durationMillis = 300))
+            }) {
+                ModPackagerPage(
+                    viewModel = viewModel,
+                    navController = navController,
+                    localActivity = localActivity
+                )
+            }
+
+            composable("mod_packager_import", enterTransition = {
+                fadeIn(animationSpec = tween(durationMillis = 300))
+            }, exitTransition = {
+                fadeOut(animationSpec = tween(durationMillis = 300))
+            }, popEnterTransition = {
+                fadeIn(animationSpec = tween(durationMillis = 300))
+            }, popExitTransition = {
+                fadeOut(animationSpec = tween(durationMillis = 300))
+            }) {
+                ModPackagerImportPage(
+                    viewModel = viewModel,
+                    navController = navController,
+                    localActivity = localActivity
+                )
             }
         }
     }

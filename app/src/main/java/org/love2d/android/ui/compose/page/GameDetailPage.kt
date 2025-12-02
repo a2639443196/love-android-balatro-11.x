@@ -2,6 +2,7 @@ package org.love2d.android.ui.compose.page
 
 import android.app.Activity
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,10 +29,12 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.ShoppingBasket
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -47,12 +50,14 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,7 +77,9 @@ import org.love2d.android.ui.compose.GameNameInputDialog
 import org.love2d.android.ui.compose.GameRunningTipDialog
 import org.love2d.android.util.GameManager
 import org.love2d.android.util.GameStartUtil
-import org.love2d.android.util.TimeUtil
+import org.love2d.android.util.GameTimeTracker
+import java.io.File
+import java.util.Arrays
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,6 +112,24 @@ fun GameDetailPage(
 
     //获取一个携程
     val scope = rememberCoroutineScope()
+
+    // --- 监听游戏状态变化，自动刷新游戏数据 ---
+    // 当游戏结束时（从运行状态变为非运行状态），自动刷新游戏数据
+    LaunchedEffect(isThisGameRunning, gameInfo?.id) {
+        if (!isThisGameRunning && gameInfo?.id != null) {
+            // 游戏已结束，重新加载最新的游戏数据以更新游玩时长等信息
+            try {
+                gameInfo?.id?.let { gameId ->
+                    val updatedGame = viewModel.getGameById(gameId)
+                    if (updatedGame != null) {
+                        viewModel.currentGame.value = updatedGame
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("GameDetailPage", "刷新游戏数据失败: ${e.message}", e)
+            }
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -186,16 +211,24 @@ fun GameDetailPage(
                     InfoRow(
                         icon = Icons.Default.CalendarToday,
                         title = "创建时间",
-                        content = TimeUtil.timestampToTime(gameInfo?.createTime),
+                        content = gameInfo?.let { GameTimeTracker.getFormattedCreateTime(it) } ?: "未知",
                     )
                 }
                 item {
                     InfoRow(
-                        icon = Icons.Default.History,
-                        title = "最后启动时间",
-                        content = TimeUtil.timestampToTime(gameInfo?.lastPlayed),
+                        icon = Icons.Default.Schedule,
+                        title = "最后游玩",
+                        content = gameInfo?.let { GameTimeTracker.getFormattedLastPlayed(it) } ?: "从未游玩",
                     )
                 }
+                item {
+                    InfoRow(
+                        icon = Icons.Default.Timer,
+                        title = "总游玩时长",
+                        content = gameInfo?.let { GameTimeTracker.getFormattedTotalPlayTime(it) } ?: "0小时0分钟",
+                    )
+                }
+                // 已经有"最后游玩"时间显示，移除重复项
                 item {
                     InfoRow(
                         icon = Icons.Default.Extension,
@@ -258,27 +291,16 @@ fun GameDetailPage(
                         }
                     }
                 }
-//                item {
-//                    InfoRow(
-//                        icon = Icons.Default.Save,
-//                        title = "存档管理",
-//                        content = "点击查看",
-//                        onClick = {
-//                            if (gameInfo!!.savePath.isNullOrEmpty()) {
-//                                scope.launch {
-//                                    withContext(Dispatchers.IO) {
-//                                        val savePath = FileSelectorUtil.createSavePath(context, gameInfo!!.name)
-//                                        gameInfo!!.savePath = savePath.absolutePath
-//                                        viewModel.suspendUpdate(gameInfo!!)
-//                                    }
-//                                    navController.navigate(Screen.SAVE_MANAGER.name)
-//                                }
-//                            } else {
-//                                navController.navigate(Screen.SAVE_MANAGER.name)
-//                            }
-//                        }
-//                    )
-//                }
+              item {
+                    InfoRow(
+                        icon = Icons.Default.Save,
+                        title = "存档管理",
+                        content = "点击查看",
+                        onClick = {
+                            navController.navigate(Screen.SAVE_MANAGER.name)
+                        }
+                    )
+                }
                 item {
                     InfoRow(
                         icon = Icons.Default.BugReport,

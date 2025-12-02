@@ -20,6 +20,7 @@ data class ModInfo(
     var description: String = "",
     var downloaded_time: String = "",
     var game_name: String = "",
+    var game_id: String = "", // 新增：游戏ID，用于精确关联
     var github_repo_url: String = "",
     var id: String = "",
     var name: String = "",

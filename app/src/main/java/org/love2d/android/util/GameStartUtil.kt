@@ -16,9 +16,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import org.love2d.android.GameActivity
 import org.love2d.android.room.game.GameInfo
 import java.io.File
+import java.lang.ref.WeakReference
 
 object GameStartUtil {
 
+    // 使用弱引用避免内存泄漏
+    private var gameContextRef: WeakReference<Context>? = null
     var currentRunningGame = MutableStateFlow<Pair<Boolean, GameInfo>?>(null)
 
     // 关键步骤1：定义清晰、唯一的广播Action字符串
@@ -42,15 +45,21 @@ object GameStartUtil {
 
         Log.d("GameStartUtil", "游戏进程正在运行，开始执行优雅关闭流程...")
 
-        // 关键步骤2：注册一个一次性的广播接收器，用于接收“已关闭”的确认回信
+        // 关键步骤2：注册一个一次性的广播接收器，用于接收"已关闭"的确认回信
         val shutdownConfirmationReceiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context?, intent: Intent?) {
                 if (intent?.action == ACTION_SHUTDOWN_CONFIRMED) {
                     Log.d("GameStartUtil", "✅ 收到游戏进程已关闭的确认回信，现在可以安全启动新游戏了。")
 
+                    // 结束游戏会话并更新游玩时长
+                    currentRunningGame.value?.let { (isRunning, gameInfo) ->
+                        if (isRunning) {
+                            GameTimeTracker.endGameSession(gameInfo, context)
+                        }
+                    }
                     currentRunningGame.value = null
                     // 注销自己，避免内存泄漏
-                    context.unregisterReceiver(this)
+                    safeUnregisterReceiver(context, this)
 
                     // 在这里，我们100%确定旧进程已处理完退出逻辑
                     // 为保险起见，再延迟一小段时间（例如500ms），给操作系统充分的回收时间
@@ -71,8 +80,12 @@ object GameStartUtil {
         }
         ContextCompat.registerReceiver(context, shutdownConfirmationReceiver, intentFilter, receiverFlags)
 
+        // 添加超时清理机制，防止内存泄漏
+        Handler(Looper.getMainLooper()).postDelayed({
+            safeUnregisterReceiver(context, shutdownConfirmationReceiver)
+        }, 10000) // 10秒超时
 
-        // 关键步骤3：发送“请关闭”的命令广播给游戏进程
+        // 关键步骤3：发送"请关闭"的命令广播给游戏进程
         Log.d("GameStartUtil", "即将发送广播, Action: $ACTION_REQUEST_SHUTDOWN, 包名: ${context.packageName}")
         val requestIntent = Intent(ACTION_REQUEST_SHUTDOWN)
         requestIntent.setPackage(context.packageName) // <--- 【重要】添加这一行
@@ -103,14 +116,21 @@ object GameStartUtil {
             currentRunningGame.value = null
             return
         }
-        // 关键步骤2：注册一个一次性的广播接收器，用于接收“已关闭”的确认回信
+        // 关键步骤2：注册一个一次性的广播接收器，用于接收"已关闭"的确认回信
         val shutdownConfirmationReceiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context?, intent: Intent?) {
                 if (intent?.action == ACTION_SHUTDOWN_CONFIRMED) {
                     Log.d("GameStartUtil", "✅ 收到游戏进程已关闭的确认回信，现在可以安全启动新游戏了。")
+
+                    // 结束游戏会话并更新游玩时长
+                    currentRunningGame.value?.let { (isRunning, gameInfo) ->
+                        if (isRunning) {
+                            GameTimeTracker.endGameSession(gameInfo, context)
+                        }
+                    }
                     currentRunningGame.value = null
-                    // 注销自己，避免内存泄漏
-                    context.unregisterReceiver(this)
+                    // 安全注销自己，避免内存泄漏
+                    safeUnregisterReceiver(context, this)
                 }
             }
         }
@@ -123,7 +143,13 @@ object GameStartUtil {
             0
         }
         ContextCompat.registerReceiver(context, shutdownConfirmationReceiver, intentFilter, receiverFlags)
-        // 关键步骤3：发送“请关闭”的命令广播给游戏进程
+
+        // 添加超时清理机制，防止内存泄漏
+        Handler(Looper.getMainLooper()).postDelayed({
+            safeUnregisterReceiver(context, shutdownConfirmationReceiver)
+        }, 10000) // 10秒超时
+
+        // 关键步骤3：发送"请关闭"的命令广播给游戏进程
         Log.d("GameStartUtil", "即将发送广播, Action: $ACTION_REQUEST_SHUTDOWN, 包名: ${context.packageName}")
         val requestIntent = Intent(ACTION_REQUEST_SHUTDOWN)
         requestIntent.setPackage(context.packageName) // <--- 【重要】添加这一行
@@ -131,12 +157,38 @@ object GameStartUtil {
     }
 
     private fun isGameProcessRunning(context: Context): Boolean {
-        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        val packageName = context.packageName
-        return am.runningAppProcesses.any {
-            it.processName == "$packageName:game_process"
-                    && currentRunningGame.value != null
-                    && currentRunningGame.value?.first == true
+        try {
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            if (am == null) {
+                Log.w("GameStartUtil", "ActivityManager is null in isGameProcessRunning")
+                return false
+            }
+
+            val packageName = context.packageName
+            val runningProcesses = am.runningAppProcesses ?: return false
+
+            return runningProcesses.any {
+                it.processName == "$packageName:game_process"
+                        && currentRunningGame.value != null
+                        && currentRunningGame.value?.first == true
+            }
+        } catch (e: Exception) {
+            Log.e("GameStartUtil", "Error checking game process status", e)
+            return false
+        }
+    }
+
+    /**
+     * 安全注销BroadcastReceiver，防止内存泄漏
+     */
+    private fun safeUnregisterReceiver(context: Context, receiver: BroadcastReceiver) {
+        try {
+            context.unregisterReceiver(receiver)
+            Log.d("GameStartUtil", "BroadcastReceiver unregistered successfully")
+        } catch (e: IllegalArgumentException) {
+            Log.w("GameStartUtil", "Receiver not registered or already unregistered", e)
+        } catch (e: Exception) {
+            Log.e("GameStartUtil", "Error unregistering receiver", e)
         }
     }
 
@@ -150,6 +202,10 @@ object GameStartUtil {
 
     private fun startGame(context: Context, game: GameInfo) {
         Log.e("HJR-Game", "startGame $game")
+
+        // 开始记录游戏会话
+        GameTimeTracker.startGameSession(game, context)
+
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(context, GameActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -165,22 +221,34 @@ object GameStartUtil {
     }
 
     fun getGameProcessPid(context: Context): Int? {
-        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        val processName = "${context.packageName}:game_process"
-        val processList = am.runningAppProcesses ?: return null
-
-        for (proc in processList) {
-            if (proc.processName == processName) {
-                return proc.pid
+        try {
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            if (am == null) {
+                Log.w("GameStartUtil", "ActivityManager is null")
+                return null
             }
+
+            val processName = "${context.packageName}:game_process"
+            val processList = am.runningAppProcesses ?: return null
+
+            for (proc in processList) {
+                if (proc.processName == processName && proc.pid > 0) {
+                    return proc.pid
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("GameStartUtil", "Error getting game process PID", e)
         }
-        return null // 没找到
+        return null // 没找到或出错
     }
 
     fun kill(context: Context) {
         val pid = getGameProcessPid(context)
         if (pid != null && pid > 0) {
             Process.killProcess(pid)
+            currentRunningGame.value?.let { (isRunning, gameInfo) ->
+                GameTimeTracker.endGameSession(gameInfo, context)
+            }
             currentRunningGame.value = null
         }
     }

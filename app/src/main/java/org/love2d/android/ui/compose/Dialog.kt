@@ -104,7 +104,8 @@ fun GameNameInputDialog(
     isShowDismissBtn: Boolean = false,
 ) {
     val context = LocalContext.current
-    val pattern = remember { Regex("^[a-zA-Z0-9]+$") }
+    // 支持中文、大小写字母、数字和横线符号的正则表达式
+    val pattern = remember { Regex("^[\u4e00-\u9fa5a-zA-Z0-9-]+$") }
 
     val trimGameName = gameName.trim()
     Dialog(
@@ -140,11 +141,18 @@ fun GameNameInputDialog(
                         if (newValue.isEmpty() || pattern.matches(newValue)) {
                             onNameChanged(newValue)
                         } else {
-                            Toast.makeText(context, "仅允许输入英文、数字和空格。", Toast.LENGTH_SHORT)
+                            Toast.makeText(context, "仅允许输入中文、英文、数字和横线(-)。", Toast.LENGTH_SHORT)
                                 .show()
                         }
                     },
-                    placeholder = { Text("输入游戏名称") }
+                    placeholder = { Text("输入游戏名称") },
+                    supportingText = {
+                        Text(
+                            text = "支持中文、英文、数字和横线(-)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Row(

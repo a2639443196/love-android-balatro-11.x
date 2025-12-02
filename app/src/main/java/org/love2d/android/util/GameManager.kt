@@ -7,15 +7,27 @@ import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.love2d.android.AppConstants
 import org.love2d.android.room.game.GameInfo
 import java.io.File
+import java.util.concurrent.Executors
 import java.util.zip.ZipFile
 
 /**
  * 负责管理游戏文件的安装、重命名、目录结构和数据库同步
  */
 object GameManager {
+
+    // 线程安全的协程作用域
+    private val gameManagerScope = CoroutineScope(Dispatchers.IO + kotlinx.coroutines.SupervisorJob())
+
+    // 用于同步操作的互斥锁
+    private val gameOperationMutex = Mutex()
+
+    // 用于数据库同步的互斥锁
+    private val syncMutex = Mutex()
 
     /**
      * 从 Uri 安装一个 .love 游戏文件到应用目录
@@ -29,19 +41,27 @@ object GameManager {
                     inputStream.copyTo(outputStream)
                 }
             }
-            CoroutineScope(Dispatchers.IO).launch {
-                val name = fileName.replace(".love", "")
-                val modsPath = createGameModsFolder(context, name)
+            // 使用线程安全的协程作用域
+            gameManagerScope.launch {
+                try {
+                    val name = fileName.replace(".love", "")
+                    val modsPath = createGameModsFolder(context, name)
 
-                val game = GameInfo(
-                    name = name,
-                    createTime = System.currentTimeMillis(),
-                    filePath = destFile.absolutePath,
-                    savePath = "",
-                    modPath = modsPath,
-                    lastPlayed = 0
-                )
-                GameDbUtil.insertGame(game)
+                    val game = GameInfo(
+                        id = generateGameId(name, destFile.absolutePath), // 生成唯一的字符串ID
+                        name = name,
+                        createTime = System.currentTimeMillis(),
+                        filePath = destFile.absolutePath,
+                        savePath = "",
+                        modPath = modsPath,
+                        lastPlayed = 0,
+                        totalPlayTime = 0L,        // 初始化总游玩时长
+                        sessionStartTime = 0L     // 初始化会话开始时间
+                    )
+                    GameDbUtil.insertGame(game)
+                } catch (e: Exception) {
+                    Log.e("GameManager", "Error inserting game to database", e)
+                }
             }
             return true
         } catch (e: Exception) {
@@ -75,8 +95,15 @@ object GameManager {
             oldGame.name = newName
             oldGame.modPath = newModPath
             oldGame.filePath = newFile.absolutePath
-            CoroutineScope(Dispatchers.IO).launch {
-                GameDbUtil.updateGame(oldGame)
+            // 使用线程安全的协程作用域和互斥锁
+            gameManagerScope.launch {
+                gameOperationMutex.withLock {
+                    try {
+                        GameDbUtil.updateGame(oldGame)
+                    } catch (e: Exception) {
+                        Log.e("GameManager", "Error updating game in database", e)
+                    }
+                }
             }
             return true
         }
@@ -87,35 +114,56 @@ object GameManager {
      * 同步游戏目录下的 .love 文件与数据库记录
      */
     fun syncGamesWithDatabase(context: Context) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val gameDir = AppConstants.GAME_FOLDER_PATH
-            if (!gameDir.exists() || !gameDir.isDirectory) return@launch
+        gameManagerScope.launch {
+            syncMutex.withLock {
+                try {
+                    val gameDir = AppConstants.GAME_FOLDER_PATH
+                    if (!gameDir.exists() || !gameDir.isDirectory) return@launch
 
-            val dao = GameDbUtil.getGameDao()
-            val gamesInDb = dao.getAllGamesNow()
-            val filesInDir = gameDir.listFiles { file -> file.extension == "love" } ?: emptyArray()
+                    val dao = GameDbUtil.getGameDao()
+                    val gamesInDb = dao.getAllGamesNow()
+                    val filesInDir = gameDir.listFiles { file -> file.extension == "love" } ?: emptyArray()
 
-            // 1. 添加数据库中不存在的游戏
-            filesInDir.filter { file -> gamesInDb.none { it.filePath == file.absolutePath } }
-                .forEach { file ->
-                    val name = file.nameWithoutExtension
-                    val modsPath = createGameModsFolder(context, name)
-                    val gameInfo = GameInfo(
-                        name = name,
-                        filePath = file.absolutePath,
-                        savePath = "",
-                        modPath = modsPath,
-                        lastPlayed = System.currentTimeMillis()
-                    )
-                    dao.insertGame(gameInfo)
+                    // 1. 添加数据库中不存在的游戏
+                    val gamesToInsert = mutableListOf<GameInfo>()
+                    filesInDir.filter { file -> gamesInDb.none { it.filePath == file.absolutePath } }
+                        .forEach { file ->
+                            val name = file.nameWithoutExtension
+                            val modsPath = createGameModsFolder(context, name)
+                            val gameInfo = GameInfo(
+                                id = generateGameId(name, file.absolutePath), // 生成唯一的字符串ID
+                                name = name,
+                                filePath = file.absolutePath,
+                                savePath = "",
+                                modPath = modsPath,
+                                lastPlayed = System.currentTimeMillis(),
+                                totalPlayTime = 0L,        // 初始化总游玩时长
+                                sessionStartTime = 0L     // 初始化会话开始时间
+                            )
+                            gamesToInsert.add(gameInfo)
+                        }
+
+                    // 批量插入以提高性能
+                    if (gamesToInsert.isNotEmpty()) {
+                        gamesToInsert.forEach { game ->
+                            dao.insertGame(game)
+                        }
+                    }
+
+                    // 2. 删除数据库中有但文件中已不存在的游戏
+                    val filePaths = filesInDir.map { it.absolutePath }.toSet()
+                    val gamesToDelete = gamesInDb.filter { it.filePath !in filePaths }
+
+                    // 批量删除
+                    gamesToDelete.forEach { gameToDelete ->
+                        dao.deleteGame(gameToDelete)
+                    }
+
+                    Log.d("GameManager", "Database sync completed. Added: ${gamesToInsert.size}, Deleted: ${gamesToDelete.size}")
+                } catch (e: Exception) {
+                    Log.e("GameManager", "Error syncing games with database", e)
                 }
-
-            // 2. 删除数据库中有但文件中已不存在的游戏
-            val filePaths = filesInDir.map { it.absolutePath }.toSet()
-            gamesInDb.filter { it.filePath !in filePaths }
-                .forEach { gameToDelete ->
-                    dao.deleteGame(gameToDelete)
-                }
+            }
         }
     }
 
@@ -184,5 +232,25 @@ object GameManager {
         } else {
             Log.w("GameManager", "旧存档文件夹不存在: ${oldSaveDir.name}")
         }
+    }
+
+    /**
+     * 生成唯一游戏ID，支持字符串如 "va231des"
+     * 优先使用游戏名称，如果冲突则添加时间戳
+     */
+    private fun generateGameId(gameName: String, filePath: String): String {
+        // 清理游戏名称，移除特殊字符
+        val cleanName = gameName.replace(Regex("[^a-zA-Z0-9_-]"), "_")
+
+        // 如果名称为空，使用文件名
+        val baseId = if (cleanName.isNotBlank()) {
+            cleanName.lowercase()
+        } else {
+            File(filePath).nameWithoutExtension.replace(Regex("[^a-zA-Z0-9_-]"), "_").lowercase()
+        }
+
+        // 添加简短的时间戳以避免冲突
+        val timestamp = (System.currentTimeMillis() / 1000) % 10000 // 取后4位
+        return "${baseId}_${timestamp}"
     }
 }

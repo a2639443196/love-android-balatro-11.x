@@ -77,4 +77,36 @@ interface ModInfoDao {
     @Query("SELECT EXISTS(SELECT 1 FROM mod_list WHERE installPath = :installPath AND id = :modId)")
     suspend fun existsByInstallPathAndModId(installPath: String, modId: String): Boolean
 
+    // 新增：按游戏ID查询模组
+    @Query("SELECT * FROM mod_list WHERE game_id = :gameId ORDER BY room_id DESC")
+    suspend fun getAllByGameId(gameId: String): List<ModInfo>
+
+    @Query("SELECT * FROM mod_list WHERE game_id = :gameId ORDER BY room_id DESC")
+    fun getAllByGameIdFlow(gameId: String): Flow<List<ModInfo>>
+
+    @Query("SELECT * FROM mod_list WHERE game_id = :gameId AND id = :modId LIMIT 1")
+    suspend fun getModInGame(gameId: String, modId: String): ModInfo?
+
+    @Query("SELECT EXISTS(SELECT 1 FROM mod_list WHERE game_id = :gameId AND id = :modId)")
+    suspend fun existsByGameIdAndModId(gameId: String, modId: String): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM mod_list WHERE game_id = :gameId)")
+    suspend fun existsByGameId(gameId: String): Boolean
+
+    @Query("DELETE FROM mod_list WHERE game_id = :gameId")
+    suspend fun deleteByGameId(gameId: String)
+
+    @Query("DELETE FROM mod_list WHERE game_id = :gameId AND id = :modId")
+    suspend fun deleteByGameIdAndModId(gameId: String, modId: String)
+
+    // 获取所有模组，按游戏ID分组（用于调试和管理）
+    @Query("SELECT game_id, COUNT(*) as count FROM mod_list WHERE game_id != '' GROUP BY game_id ORDER BY count DESC")
+    suspend fun getModCountByGame(): List<GameModCount>
+
+    // 数据类用于存储游戏模组数量统计
+    data class GameModCount(
+        val game_id: String,
+        val count: Int
+    )
+
 }
